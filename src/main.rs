@@ -67,7 +67,10 @@ struct Config {
 fn get_config_path(data_path: &Option<PathBuf>) -> PathBuf {
     match data_path {
         Some(path) => path.join("config.toml"),
-        None => dirs::home_dir().unwrap().join(".reviewr").join("config.toml"),
+        None => dirs::home_dir()
+            .unwrap()
+            .join(".reviewr")
+            .join("config.toml"),
     }
 }
 
