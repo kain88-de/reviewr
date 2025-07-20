@@ -17,3 +17,7 @@ fmt:
 # Run cargo clippy
 clippy:
     cargo clippy
+
+# Run the application with test data
+run *ARGS:
+    cargo run -- --data-path .test_eval_data/ {{ARGS}}
