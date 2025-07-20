@@ -76,5 +76,5 @@ jobs:
         uses: dawidd6/action-homebrew-bump@v3
         with:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          tap: maxlinke/eval
+          tap: kain88-de/eval
           formula: eval
