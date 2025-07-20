@@ -8,7 +8,7 @@ use tempfile::tempdir;
 #[test]
 fn test_add_employee() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("eval").unwrap();
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
     cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
@@ -20,7 +20,7 @@ fn test_add_employee() {
 #[test]
 fn test_config_set_get() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("eval").unwrap();
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
     cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
@@ -30,7 +30,7 @@ fn test_config_set_get() {
         .arg("github.com,google.com");
     cmd.assert().success();
 
-    let mut cmd = Command::cargo_bin("eval").unwrap();
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
     cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
@@ -45,7 +45,7 @@ fn test_config_set_get() {
 #[test]
 fn test_notes_evidence() {
     let dir = tempdir().unwrap();
-    let mut cmd = Command::cargo_bin("eval").unwrap();
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
     cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
@@ -55,7 +55,7 @@ fn test_notes_evidence() {
         .arg("localhost");
     cmd.assert().success();
 
-    let mut cmd = Command::cargo_bin("eval").unwrap();
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
     cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
@@ -68,7 +68,7 @@ fn test_notes_evidence() {
         .set_text("http://localhost:8080/evidence/1")
         .unwrap();
 
-    let mut cmd = Command::cargo_bin("eval").unwrap();
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
     cmd.timeout(Duration::from_secs(5));
     cmd.env("EDITOR", "true");
     cmd.arg("--data-path")

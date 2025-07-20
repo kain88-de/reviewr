@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Parser)]
-#[command(name = "eval")]
-#[command(about = "A CLI tool for employee evaluations.", long_about = None)]
+#[command(name = "reviewr")]
+#[command(about = "A CLI tool for employee reviews.", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -67,7 +67,7 @@ struct Config {
 fn get_config_path(data_path: &Option<PathBuf>) -> PathBuf {
     match data_path {
         Some(path) => path.join("config.toml"),
-        None => dirs::home_dir().unwrap().join(".eval").join("config.toml"),
+        None => dirs::home_dir().unwrap().join(".reviewr").join("config.toml"),
     }
 }
 
@@ -101,7 +101,7 @@ fn main() -> io::Result<()> {
 
     let eval_dir = match cli.data_path {
         Some(ref path) => path.clone(),
-        None => dirs::home_dir().unwrap().join(".eval"),
+        None => dirs::home_dir().unwrap().join(".reviewr"),
     };
     let employees_dir = eval_dir.join("employees");
     let notes_dir = eval_dir.join("notes");

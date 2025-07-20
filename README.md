@@ -1,6 +1,6 @@
-# Eval
+# Reviewr
 
-A CLI tool for employee evaluations with automatic evidence collection from clipboard URLs.
+A CLI tool for employee reviews with automatic evidence collection from clipboard URLs.
 
 ## Features
 
@@ -27,7 +27,7 @@ Download the latest release for your platform from the [releases page](https://g
 ### Add an Employee
 
 ```bash
-eval add "John Doe"
+reviewr add "John Doe"
 ```
 
 You'll be prompted to enter the employee's title.
@@ -35,7 +35,7 @@ You'll be prompted to enter the employee's title.
 ### Open Notes for an Employee
 
 ```bash
-eval notes "John Doe"
+reviewr notes "John Doe"
 ```
 
 This will:
@@ -47,10 +47,10 @@ This will:
 
 ```bash
 # Set allowed domains for URL evidence collection
-eval config set allowed_domains "github.com,google.com,localhost"
+reviewr config set allowed_domains "github.com,google.com,localhost"
 
 # View current configuration
-eval config get allowed_domains
+reviewr config get allowed_domains
 ```
 
 ### Custom Data Path
@@ -58,13 +58,13 @@ eval config get allowed_domains
 Use a custom directory for data storage:
 
 ```bash
-eval --data-path ./my-eval-data add "Jane Doe"
-eval --data-path ./my-eval-data notes "Jane Doe"
+reviewr --data-path ./my-eval-data add "Jane Doe"
+reviewr --data-path ./my-eval-data notes "Jane Doe"
 ```
 
 ## Data Structure
 
-By default, data is stored in `~/.eval/`:
+By default, data is stored in `~/.reviewr/`:
 
 - `employees/{name}.toml` - Employee records
 - `notes/{name}.md` - Employee notes
@@ -90,7 +90,7 @@ cargo build
 cargo test
 
 # Run with test data directory
-just run --data-path .test_eval_data/ add "Test User"
+just run --data-path .test_reviewr_data/ add "Test User"
 ```
 
 ### Code Quality

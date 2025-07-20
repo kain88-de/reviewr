@@ -5,10 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Build and Development
-- `just run [ARGS]` - Run the application with test data (uses `.test_eval_data/` directory)
+- `just run [ARGS]` - Run the application with test data (uses `.test_reviewr_data/` directory)
 - `cargo build` - Build the project
 - `cargo run -- [ARGS]` - Run the application directly
-- `cargo run -- --data-path .test_eval_data/ [COMMAND]` - Run with isolated test data
+- `cargo run -- --data-path .test_reviewr_data/ [COMMAND]` - Run with isolated test data
 
 ### Testing
 - `cargo test` - Run all tests (unit and integration)
@@ -30,7 +30,7 @@ Before committing any changes:
 
 ## Architecture
 
-This is a Rust CLI tool for employee evaluations with the following structure:
+This is a Rust CLI tool for employee reviews with the following structure:
 
 ### Core Components
 - **CLI Interface**: Uses `clap` for command parsing with subcommands (Add, Notes, Config)
@@ -45,7 +45,7 @@ This is a Rust CLI tool for employee evaluations with the following structure:
 - **Configurable Data Path**: Can use custom data directory via `--data-path`
 
 ### Data Structure
-- Default data location: `~/.eval/`
+- Default data location: `~/.reviewr/`
 - Employee files: `employees/{name}.toml`
 - Note files: `notes/{name}.md`
 - Config file: `config.toml`

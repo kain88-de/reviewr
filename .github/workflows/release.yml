@@ -27,13 +27,13 @@ jobs:
 
       - name: Create archives
         run: |
-          tar -czf eval-x86_64-unknown-linux-gnu.tar.gz -C target/x86_64-unknown-linux-gnu/release eval
+          tar -czf reviewr-x86_64-unknown-linux-gnu.tar.gz -C target/x86_64-unknown-linux-gnu/release reviewr
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            eval-x86_64-unknown-linux-gnu.tar.gz
+            reviewr-x86_64-unknown-linux-gnu.tar.gz
 
       - name: Update Homebrew tap
         uses: mislav/bump-homebrew-formula-action@v3
@@ -41,7 +41,7 @@ jobs:
           formula-name: eval
           formula-path: Formula/eval.rb
           homebrew-tap: kain88-de/homebrew-eval
-          download-url: https://github.com/kain88-de/eval/releases/download/${{ github.ref_name }}/eval-x86_64-unknown-linux-gnu.tar.gz
+          download-url: https://github.com/kain88-de/eval/releases/download/${{ github.ref_name }}/reviewr-x86_64-unknown-linux-gnu.tar.gz
           commit-message: |
             {{formulaName}} {{version}}
 

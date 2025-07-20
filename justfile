@@ -1,4 +1,4 @@
-# Justfile for eval
+# Justfile for reviewr
 
 # Run all linters
 lint:
@@ -20,7 +20,7 @@ clippy:
 
 # Run the application with test data
 run *ARGS:
-    cargo run -- --data-path .test_eval_data/ {{ARGS}}
+    cargo run -- --data-path .test_reviewr_data/ {{ARGS}}
 
 # Release a new version
 release LEVEL:
