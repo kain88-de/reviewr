@@ -58,7 +58,9 @@ fn test_notes_evidence() {
     cmd.assert().success();
 
     let mut clipboard = arboard::Clipboard::new().unwrap();
-    clipboard.set_text("https://example.com/evidence/1").unwrap();
+    clipboard
+        .set_text("https://example.com/evidence/1")
+        .unwrap();
 
     let mut cmd = Command::cargo_bin("eval").unwrap();
     cmd.arg("--data-path")

@@ -181,7 +181,11 @@ fn add_employee(employees_dir: &Path, employee_name: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn open_notes(notes_dir: &Path, employee_name: &str, data_path: &Option<PathBuf>) -> io::Result<()> {
+fn open_notes(
+    notes_dir: &Path,
+    employee_name: &str,
+    data_path: &Option<PathBuf>,
+) -> io::Result<()> {
     let note_path = notes_dir.join(format!("{employee_name}.md"));
     if !note_path.exists() {
         let mut file = fs::File::create(&note_path)?;
@@ -202,7 +206,7 @@ fn open_notes(notes_dir: &Path, employee_name: &str, data_path: &Option<PathBuf>
                         || config.allowed_domains.iter().any(|d| d == domain)
                     {
                         let mut file = fs::OpenOptions::new().append(true).open(&note_path)?;
-                        writeln!(file, "- Evidence: {}", url)?;
+                        writeln!(file, "- Evidence: {url}")?;
                     }
                 }
             }

@@ -57,3 +57,12 @@ Our primary focus is on **behavior-driven integration testing**. We treat the ap
 ### Unit Tests
 
 While integration tests provide a high-level view of the application's behavior, unit tests allow us to test the functionality of individual modules in a more granular way. We will write unit tests for all public functions in our modules to ensure that they behave as expected.
+
+## Pre-Commit Checks
+
+Before committing any changes, the following checks must be performed:
+
+1.  **Run all linters:** `just lint`
+2.  **Run all tests:** `cargo test`
+
+All checks must pass before a commit can be made. This ensures that the codebase remains in a clean and consistent state.
