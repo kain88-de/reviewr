@@ -9,7 +9,7 @@ use tempfile::tempdir;
 fn test_add_employee() {
     let dir = tempdir().unwrap();
     let mut cmd = Command::cargo_bin("eval").unwrap();
-    cmd.timeout(Duration::from_secs(10));
+    cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
         .arg("add")
@@ -21,7 +21,7 @@ fn test_add_employee() {
 fn test_config_set_get() {
     let dir = tempdir().unwrap();
     let mut cmd = Command::cargo_bin("eval").unwrap();
-    cmd.timeout(Duration::from_secs(10));
+    cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
         .arg("config")
@@ -31,7 +31,7 @@ fn test_config_set_get() {
     cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("eval").unwrap();
-    cmd.timeout(Duration::from_secs(10));
+    cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
         .arg("config")
@@ -46,7 +46,7 @@ fn test_config_set_get() {
 fn test_notes_evidence() {
     let dir = tempdir().unwrap();
     let mut cmd = Command::cargo_bin("eval").unwrap();
-    cmd.timeout(Duration::from_secs(10));
+    cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
         .arg("config")
@@ -56,7 +56,7 @@ fn test_notes_evidence() {
     cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("eval").unwrap();
-    cmd.timeout(Duration::from_secs(10));
+    cmd.timeout(Duration::from_secs(5));
     cmd.arg("--data-path")
         .arg(dir.path())
         .arg("add")
@@ -69,7 +69,8 @@ fn test_notes_evidence() {
         .unwrap();
 
     let mut cmd = Command::cargo_bin("eval").unwrap();
-    cmd.timeout(Duration::from_secs(10));
+    cmd.timeout(Duration::from_secs(5));
+    cmd.env("EDITOR", "true");
     cmd.arg("--data-path")
         .arg(dir.path())
         .arg("notes")

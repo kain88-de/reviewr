@@ -14,66 +14,27 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: rustfmt, clippy
+          targets: x86_64-unknown-linux-gnu
 
       - name: Build binaries
         run: |
           cargo build --release --target=x86_64-unknown-linux-gnu
-          cargo build --release --target=aarch64-apple-darwin
-          cargo build --release --target=x86_64-apple-darwin
 
       - name: Create archives
         run: |
           tar -czf eval-x86_64-unknown-linux-gnu.tar.gz -C target/x86_64-unknown-linux-gnu/release eval
-          tar -czf eval-aarch64-apple-darwin.tar.gz -C target/aarch64-apple-darwin/release eval
-          tar -czf eval-x86_64-apple-darwin.tar.gz -C target/x86_64-apple-darwin/release eval
 
       - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-      - name: Upload assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./eval-x86_64-unknown-linux-gnu.tar.gz
-          asset_name: eval-x86_64-unknown-linux-gnu.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./eval-aarch64-apple-darwin.tar.gz
-          asset_name: eval-aarch64-apple-darwin.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./eval-x86_64-apple-darwin.tar.gz
-          asset_name: eval-x86_64-apple-darwin.tar.gz
-          asset_content_type: application/gzip
+          files: |
+            eval-x86_64-unknown-linux-gnu.tar.gz
 
       - name: Update Homebrew tap
-        uses: dawidd6/action-homebrew-bump@v3
+        uses: dawidd6/action-homebrew-bump-formula@v4
         with:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           tap: kain88-de/eval
