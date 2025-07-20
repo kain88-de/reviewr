@@ -128,7 +128,7 @@ fn main() -> io::Result<()> {
                 }
             }
 
-            open_notes(&notes_dir, employee)?;
+            open_notes(&notes_dir, employee, &cli.data_path)?;
         }
         Commands::Config { command } => match command {
             ConfigCommands::Get { key } => {
@@ -181,7 +181,7 @@ fn add_employee(employees_dir: &Path, employee_name: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn open_notes(notes_dir: &Path, employee_name: &str) -> io::Result<()> {
+fn open_notes(notes_dir: &Path, employee_name: &str, data_path: &Option<PathBuf>) -> io::Result<()> {
     let note_path = notes_dir.join(format!("{employee_name}.md"));
     if !note_path.exists() {
         let mut file = fs::File::create(&note_path)?;
@@ -191,6 +191,22 @@ fn open_notes(notes_dir: &Path, employee_name: &str) -> io::Result<()> {
             "# Notes for {employee_name}\n\n## {}\n\n",
             now.format("%Y-%m-%d")
         )?;
+    }
+
+    let config = load_config(data_path)?;
+    if let Ok(mut clipboard) = arboard::Clipboard::new() {
+        if let Ok(text) = clipboard.get_text() {
+            if let Ok(url) = url::Url::parse(&text) {
+                if let Some(domain) = url.domain() {
+                    if config.allowed_domains.is_empty()
+                        || config.allowed_domains.iter().any(|d| d == domain)
+                    {
+                        let mut file = fs::OpenOptions::new().append(true).open(&note_path)?;
+                        writeln!(file, "- Evidence: {}", url)?;
+                    }
+                }
+            }
+        }
     }
 
     let editor = env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());

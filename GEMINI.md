@@ -38,3 +38,22 @@ During the build process, all warnings are treated as errors. This is enforced b
 [build]
 rustflags = ["-D", "warnings"]
 ```
+
+## Testing Philosophy
+
+Our testing strategy is composed of two layers: high-level integration tests and low-level unit tests.
+
+### Integration Tests
+
+Our primary focus is on **behavior-driven integration testing**. We treat the application as a black box, interacting with it from the outside-in, just as a user would. This ensures that our tests verify the actual behavior of the application, rather than its internal implementation details.
+
+**Core Principles:**
+
+1.  **Test User Journeys:** Tests should mirror user actions. We will test the full execution path of a command, from the command line to the resulting output or side effects on the file system.
+2.  **Avoid Mocks:** We will use real file systems and application binaries. Instead of mocking the file system, we will create temporary data directories for each test run, ensuring that tests are isolated and do not interfere with each other or the development environment.
+3.  **High-Level Assertions:** Assertions will be made against the observable outputs of the application. This includes checking the exit code of the process, the content of `stdout` and `stderr`, and the state of files created or modified by the application.
+4.  **Refactoring-Friendly:** By focusing on the external behavior of the application, our tests will remain valid even if the internal implementation is completely refactored. As long as the application's behavior remains the same, the tests will continue to pass.
+
+### Unit Tests
+
+While integration tests provide a high-level view of the application's behavior, unit tests allow us to test the functionality of individual modules in a more granular way. We will write unit tests for all public functions in our modules to ensure that they behave as expected.
