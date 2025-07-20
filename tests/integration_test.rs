@@ -47,7 +47,7 @@ fn test_notes_evidence() {
         .arg("config")
         .arg("set")
         .arg("allowed_domains")
-        .arg("example.com");
+        .arg("localhost");
     cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("eval").unwrap();
@@ -59,7 +59,7 @@ fn test_notes_evidence() {
 
     let mut clipboard = arboard::Clipboard::new().unwrap();
     clipboard
-        .set_text("https://example.com/evidence/1")
+        .set_text("http://localhost:8080/evidence/1")
         .unwrap();
 
     let mut cmd = Command::cargo_bin("eval").unwrap();
@@ -71,5 +71,5 @@ fn test_notes_evidence() {
 
     let notes_path = dir.path().join("notes/Jane Doe.md");
     let notes = fs::read_to_string(notes_path).unwrap();
-    assert!(notes.contains("- Evidence: https://example.com/evidence/1"));
+    assert!(notes.contains("- Evidence: http://localhost:8080/evidence/1"));
 }
