@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Parser)]
@@ -12,6 +12,10 @@ use std::process::Command;
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+
+    /// Sets a custom data path
+    #[arg(long, value_name = "FILE")]
+    data_path: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
@@ -26,6 +30,27 @@ enum Commands {
         /// The name of the employee
         employee: String,
     },
+    /// Manage configuration
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum ConfigCommands {
+    /// Get a configuration value
+    Get {
+        /// The key to get
+        key: String,
+    },
+    /// Set a configuration value
+    Set {
+        /// The key to set
+        key: String,
+        /// The value to set
+        value: String,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -37,7 +62,10 @@ struct Employee {
 fn main() -> io::Result<()> {
     let cli = Cli::parse();
 
-    let eval_dir = dirs::home_dir().unwrap().join(".eval");
+    let eval_dir = match cli.data_path {
+        Some(path) => path,
+        None => dirs::home_dir().unwrap().join(".eval"),
+    };
     let employees_dir = eval_dir.join("employees");
     let notes_dir = eval_dir.join("notes");
 
