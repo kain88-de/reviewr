@@ -1,10 +1,9 @@
-
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
 
-use tempfile::tempdir;
 use std::time::Duration;
+use tempfile::tempdir;
 
 #[test]
 fn test_add_employee() {
