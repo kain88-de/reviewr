@@ -26,7 +26,8 @@ run *ARGS:
 release LEVEL:
     just lint
     cargo test
-    cargo bump {{LEVEL}}
+    cargo install cargo-edit
+    cargo set-version --bump {{LEVEL}}
     git commit -am "chore(release): v$(cargo pkgid | cut -d \"#\" -f 2)"
     git tag v$(cargo pkgid | cut -d \"#\" -f 2)
     git push
