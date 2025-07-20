@@ -29,6 +29,6 @@ release LEVEL:
     cargo install cargo-edit
     cargo set-version --bump {{LEVEL}}
     git commit -am "chore(release): v$(cargo pkgid | awk -F# '{print $2}')"
-    git tag v$(cargo pkgid | awk -F# '{print $2}')"
+    git tag "v$(cargo pkgid | awk -F# '{print $2}')"
     git push
     git push --tags
