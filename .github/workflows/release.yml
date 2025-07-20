@@ -36,8 +36,15 @@ jobs:
             eval-x86_64-unknown-linux-gnu.tar.gz
 
       - name: Update Homebrew tap
-        uses: dawidd6/action-homebrew-bump-formula@v4
+        uses: mislav/bump-homebrew-formula-action@v3
         with:
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          tap: kain88-de/eval
-          formula: eval
+          formula-name: eval
+          formula-path: Formula/eval.rb
+          homebrew-tap: kain88-de/homebrew-eval
+          download-url: https://github.com/kain88-de/eval/releases/download/${{ github.ref_name }}/eval-x86_64-unknown-linux-gnu.tar.gz
+          commit-message: |
+            {{formulaName}} {{version}}
+
+            Created by https://github.com/mislav/bump-homebrew-formula-action
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
