@@ -96,7 +96,6 @@ fn save_config(config: &Config, data_path: &Option<PathBuf>) -> io::Result<()> {
     Ok(())
 }
 
-
 fn main() -> io::Result<()> {
     let cli = Cli::parse();
 
@@ -147,7 +146,8 @@ fn main() -> io::Result<()> {
                 let mut config = load_config(&cli.data_path)?;
                 match key.as_str() {
                     "allowed_domains" => {
-                        config.allowed_domains = value.split(',').map(|s| s.trim().to_string()).collect();
+                        config.allowed_domains =
+                            value.split(',').map(|s| s.trim().to_string()).collect();
                         save_config(&config, &cli.data_path)?;
                         println!("allowed_domains set to: {:?}", config.allowed_domains);
                     }
