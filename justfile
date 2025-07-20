@@ -28,7 +28,7 @@ release LEVEL:
     cargo test
     cargo install cargo-edit
     cargo set-version --bump {{LEVEL}}
-    git commit -am "chore(release): v$(cargo pkgid | cut -d \"#\" -f 2)"
-    git tag v$(cargo pkgid | cut -d \"#\" -f 2)
+    git commit -am "chore(release): v$(cargo pkgid | sed 's/.*#//')"
+    git tag v$(cargo pkgid | sed 's/.*#//')"
     git push
     git push --tags
