@@ -20,7 +20,7 @@ cargo install --path .
 
 ### From GitHub Releases
 
-Download the latest release for your platform from the [releases page](https://github.com/kain88-de/eval/releases).
+Download the latest release for your platform from the [releases page](https://github.com/kain88-de/reviewr/releases).
 
 ## Usage
 

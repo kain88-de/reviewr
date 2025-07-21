@@ -38,9 +38,9 @@ jobs:
       - name: Update Homebrew tap
         uses: mislav/bump-homebrew-formula-action@v3
         with:
-          formula-name: eval
-          formula-path: Formula/eval.rb
-          homebrew-tap: kain88-de/homebrew-eval
+          formula-name: reviewr
+          formula-path: Formula/reviewr.rb
+          homebrew-tap: kain88-de/homebrew-reviewr
           download-url: https://github.com/kain88-de/reviewr/releases/download/${{ github.ref_name }}/reviewr-x86_64-unknown-linux-gnu.tar.gz
           commit-message: |
             {{formulaName}} {{version}}
