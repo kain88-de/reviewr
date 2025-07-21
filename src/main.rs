@@ -1,7 +1,7 @@
-mod cli;
-mod core;
-mod terminal;
-mod tui;
+pub mod cli;
+pub mod core;
+pub mod terminal;
+pub mod tui;
 
 use clap::Parser;
 use cli::{Cli, Commands, handle_add_command, handle_config_command, handle_notes_command};

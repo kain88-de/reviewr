@@ -1,4 +1,5 @@
 .test_eval_data/
+.test_reviewr_data
 target
 .token
 .claude
