@@ -35,7 +35,23 @@ jobs:
           files: |
             reviewr-x86_64-unknown-linux-gnu.tar.gz
 
+      - name: Check Homebrew tap access
+        id: check-tap
+        run: |
+          if [ -n "${{ secrets.HOMEBREW_TAP_TOKEN }}" ]; then
+            if curl -s -H "Authorization: token ${{ secrets.HOMEBREW_TAP_TOKEN }}" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 https://api.github.com/repos/kain88-de/homebrew-reviewr > /dev/null 2>&1; then
+              echo "tap-accessible=true" >> $GITHUB_OUTPUT
+            else
+              echo "tap-accessible=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "tap-accessible=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Update Homebrew tap
+        if: steps.check-tap.outputs.tap-accessible == 'true'
         uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: reviewr
@@ -47,4 +63,4 @@ jobs:
 
             Created by https://github.com/mislav/bump-homebrew-formula-action
         env:
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }
