@@ -1,5 +1,7 @@
 # Reviewr
 
+[![CI](https://github.com/kain88-de/reviewr/actions/workflows/ci.yml/badge.svg)](https://github.com/kain88-de/reviewr/actions/workflows/ci.yml)
+
 A CLI tool for employee reviews with automatic evidence collection from clipboard URLs.
 
 ## Features
@@ -12,15 +14,25 @@ A CLI tool for employee reviews with automatic evidence collection from clipboar
 
 ## Installation
 
-### From Source
+### Homebrew (macOS/Linux)
 
 ```bash
-cargo install --path .
+# Add the tap
+brew tap kain88-de/homebrew-reviewr
+
+# Install reviewr
+brew install reviewr
 ```
 
 ### From GitHub Releases
 
 Download the latest release for your platform from the [releases page](https://github.com/kain88-de/reviewr/releases).
+
+### From Source
+
+```bash
+cargo install --path .
+```
 
 ## Usage
 
