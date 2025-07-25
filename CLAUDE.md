@@ -13,6 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing
 - `cargo test` - Run all tests (unit and integration)
 - `cargo test --test integration_test` - Run only integration tests
+- `cargo test test_name` - Run specific test by name
+- **Always add tests when fixing bugs or adding features**
 
 ### Linting and Code Quality
 - `just lint` - Run all linters (check, fmt, clippy)

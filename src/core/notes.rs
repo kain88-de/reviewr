@@ -25,9 +25,7 @@ impl NotesService {
             if let Ok(text) = clipboard.get_text() {
                 if let Ok(url) = url::Url::parse(&text) {
                     if let Some(domain) = url.domain() {
-                        if config.allowed_domains.is_empty()
-                            || config.allowed_domains.iter().any(|d| d == domain)
-                        {
+                        if Self::is_domain_allowed(domain, &config.allowed_domains) {
                             let mut file = fs::OpenOptions::new().append(true).open(&note_path)?;
                             writeln!(file, "- Evidence: {url}")?;
                         }
@@ -40,5 +38,49 @@ impl NotesService {
         Command::new(editor).arg(&note_path).status()?;
 
         Ok(())
+    }
+
+    fn is_domain_allowed(domain: &str, allowed_domains: &[String]) -> bool {
+        allowed_domains.is_empty()
+            || allowed_domains
+                .iter()
+                .any(|d| domain == d || domain.ends_with(&format!(".{d}")))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_domain_matching() {
+        let allowed_domains = vec!["company.example.com".to_string()];
+
+        // Exact match should work
+        assert!(NotesService::is_domain_allowed(
+            "company.example.com",
+            &allowed_domains
+        ));
+
+        // Subdomain should work
+        assert!(NotesService::is_domain_allowed(
+            "review.company.example.com",
+            &allowed_domains
+        ));
+
+        // Different domain should not work
+        assert!(!NotesService::is_domain_allowed(
+            "other.com",
+            &allowed_domains
+        ));
+
+        // Partial match should not work
+        assert!(!NotesService::is_domain_allowed(
+            "example.com",
+            &allowed_domains
+        ));
+
+        // Empty allowed domains should allow everything
+        assert!(NotesService::is_domain_allowed("any.domain.com", &[]));
     }
 }
