@@ -83,3 +83,50 @@ fn test_notes_evidence() {
     let notes = fs::read_to_string(notes_path).unwrap();
     assert!(notes.contains("- Evidence: http://localhost:8080/evidence/1"));
 }
+
+#[test]
+fn test_list_employees() {
+    let dir = tempdir().unwrap();
+
+    // Add a few employees first
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
+    cmd.timeout(Duration::from_secs(5));
+    cmd.arg("--data-path")
+        .arg(dir.path())
+        .arg("add")
+        .arg("Alice Smith");
+    cmd.write_stdin("Manager\n");
+    cmd.assert().success();
+
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
+    cmd.timeout(Duration::from_secs(5));
+    cmd.arg("--data-path")
+        .arg(dir.path())
+        .arg("add")
+        .arg("Bob Johnson");
+    cmd.write_stdin("Developer\n");
+    cmd.assert().success();
+
+    // Test list command
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
+    cmd.timeout(Duration::from_secs(5));
+    cmd.arg("--data-path").arg(dir.path()).arg("list");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("Employees (2):"))
+        .stdout(predicate::str::contains("Alice Smith - Manager"))
+        .stdout(predicate::str::contains("Bob Johnson - Developer"));
+}
+
+#[test]
+fn test_list_empty() {
+    let dir = tempdir().unwrap();
+
+    // Test list command with no employees
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
+    cmd.timeout(Duration::from_secs(5));
+    cmd.arg("--data-path").arg(dir.path()).arg("list");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("No employees found."));
+}

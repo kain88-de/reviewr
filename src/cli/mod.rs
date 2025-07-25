@@ -38,6 +38,8 @@ pub enum Commands {
         /// The name of the employee (optional - if not provided, opens TUI selector)
         employee: Option<String>,
     },
+    /// List all employees
+    List,
     /// Manage configuration
     Config {
         #[command(subcommand)]
@@ -59,6 +61,31 @@ pub enum ConfigCommands {
         /// The value to set
         value: String,
     },
+}
+
+pub fn handle_list_command(data_path: &DataPath) -> io::Result<()> {
+    let employees = EmployeeService::list_employees(data_path)?;
+
+    if employees.is_empty() {
+        println!("No employees found.");
+        return Ok(());
+    }
+
+    println!("Employees ({}):", employees.len());
+    println!("{}", "=".repeat(20));
+
+    for employee_name in &employees {
+        match EmployeeService::get_employee(data_path, employee_name) {
+            Ok(employee) => {
+                println!("• {} - {}", employee.name, employee.title);
+            }
+            Err(e) => {
+                println!("• {employee_name} - (Error loading: {e})");
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub fn handle_add_command(data_path: &DataPath, employee: &Option<String>) -> io::Result<()> {

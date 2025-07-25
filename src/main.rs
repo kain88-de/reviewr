@@ -6,7 +6,7 @@ pub mod tui;
 use clap::Parser;
 use cli::{
     Cli, Commands, handle_add_command, handle_config_command, handle_edit_command,
-    handle_notes_command,
+    handle_list_command, handle_notes_command,
 };
 use core::models::DataPath;
 use std::fs;
@@ -39,6 +39,9 @@ fn main() -> io::Result<()> {
         }
         Commands::Edit { employee } => {
             handle_edit_command(&data_path, employee)?;
+        }
+        Commands::List => {
+            handle_list_command(&data_path)?;
         }
         Commands::Config { command } => {
             handle_config_command(&data_path, command)?;
