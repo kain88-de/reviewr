@@ -14,6 +14,7 @@ fn test_add_employee() {
         .arg(dir.path())
         .arg("add")
         .arg("John Doe");
+    cmd.write_stdin("Engineer\n");
     cmd.assert().success();
 }
 
@@ -61,6 +62,7 @@ fn test_notes_evidence() {
         .arg(dir.path())
         .arg("add")
         .arg("Jane Doe");
+    cmd.write_stdin("Engineer\n");
     cmd.assert().success();
 
     let mut clipboard = arboard::Clipboard::new().unwrap();

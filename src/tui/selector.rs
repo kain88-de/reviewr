@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn test_employee_selector_creation_empty() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
 
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 
@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn test_employee_selector_with_data() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
 
         fs::create_dir_all(&data_path.employees_dir).unwrap();
         fs::write(
@@ -231,7 +231,7 @@ title = "Designer""#,
     #[test]
     fn test_fuzzy_filtering() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
 
         fs::create_dir_all(&data_path.employees_dir).unwrap();
         fs::write(
@@ -270,7 +270,7 @@ title = "Designer""#,
     #[test]
     fn test_filtering_clears_with_empty_input() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
 
         fs::create_dir_all(&data_path.employees_dir).unwrap();
         fs::write(
@@ -300,7 +300,7 @@ title = "Designer""#,
     #[test]
     fn test_list_state_selection() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
 
         fs::create_dir_all(&data_path.employees_dir).unwrap();
         fs::write(
@@ -318,7 +318,7 @@ title = "Designer""#,
     #[test]
     fn test_no_selection_when_empty() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
 
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 

@@ -14,8 +14,11 @@ use std::io;
 use tui::EmployeeSelector;
 
 fn main() -> io::Result<()> {
+    // Initialize logging
+    env_logger::init();
+
     let cli = Cli::parse();
-    let data_path = DataPath::new(cli.data_path);
+    let data_path = DataPath::new(cli.data_path)?;
 
     fs::create_dir_all(&data_path.employees_dir)?;
     fs::create_dir_all(&data_path.notes_dir)?;

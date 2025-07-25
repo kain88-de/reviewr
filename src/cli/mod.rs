@@ -1,7 +1,11 @@
 use crate::core::{
-    config::ConfigService, employee::EmployeeService, models::DataPath, notes::NotesService,
+    config::ConfigService,
+    employee::EmployeeService,
+    models::{DataPath, validate_domain},
+    notes::NotesService,
 };
 use clap::{Parser, Subcommand};
+use log::{error, info};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -159,11 +163,28 @@ pub fn handle_config_command(
             let mut config = ConfigService::load_config(data_path)?;
             match key.as_str() {
                 "allowed_domains" => {
-                    config.allowed_domains =
-                        value.split(',').map(|s| s.trim().to_string()).collect();
-                    ConfigService::save_config(&config, data_path)?;
-                    println!("allowed_domains set to: {:?}", config.allowed_domains);
-                    println!("Config file: {}", data_path.config_path().display());
+                    let domains: Result<Vec<String>, io::Error> = value
+                        .split(',')
+                        .map(|s| {
+                            let domain = s.trim().to_string();
+                            validate_domain(&domain)?;
+                            Ok(domain)
+                        })
+                        .collect();
+
+                    match domains {
+                        Ok(valid_domains) => {
+                            config.allowed_domains = valid_domains;
+                            ConfigService::save_config(&config, data_path)?;
+                            info!("Updated allowed_domains configuration");
+                            println!("allowed_domains set to: {:?}", config.allowed_domains);
+                            println!("Config file: {}", data_path.config_path().display());
+                        }
+                        Err(e) => {
+                            error!("Invalid domain in configuration: {e}");
+                            return Err(e);
+                        }
+                    }
                 }
                 _ => {
                     println!("Unknown key: {key}");

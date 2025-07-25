@@ -1,5 +1,6 @@
 use crate::core::config::ConfigService;
 use crate::core::models::DataPath;
+use log::{info, warn};
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -11,6 +12,7 @@ impl NotesService {
     pub fn open_notes(data_path: &DataPath, employee_name: &str) -> io::Result<()> {
         let note_path = data_path.notes_dir.join(format!("{employee_name}.md"));
         if !note_path.exists() {
+            info!("Creating new notes file for employee: {employee_name}");
             let mut file = fs::File::create(&note_path)?;
             let now = chrono::Local::now();
             writeln!(
@@ -26,15 +28,28 @@ impl NotesService {
                 if let Ok(url) = url::Url::parse(&text) {
                     if let Some(domain) = url.domain() {
                         if Self::is_domain_allowed(domain, &config.allowed_domains) {
+                            info!("Adding evidence URL from clipboard: {url} (domain: {domain})");
                             let mut file = fs::OpenOptions::new().append(true).open(&note_path)?;
                             writeln!(file, "- Evidence: {url}")?;
+                        } else {
+                            warn!(
+                                "Clipboard URL domain '{}' not in allowed domains: {:?}",
+                                domain, config.allowed_domains
+                            );
                         }
                     }
+                } else {
+                    info!("Clipboard content is not a valid URL, skipping evidence insertion");
                 }
             }
         }
 
         let editor = env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());
+        info!(
+            "Opening notes file {} with editor: {}",
+            note_path.display(),
+            editor
+        );
         Command::new(editor).arg(&note_path).status()?;
 
         Ok(())

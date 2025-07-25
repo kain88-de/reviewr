@@ -1,4 +1,6 @@
-use crate::core::models::{DataPath, Employee};
+use crate::core::models::{DataPath, Employee, validate_employee_name};
+use fs4::FileExt;
+use log::{info, warn};
 use std::fs;
 use std::io::{self, Write};
 
@@ -6,6 +8,8 @@ pub struct EmployeeService;
 
 impl EmployeeService {
     pub fn add_employee(data_path: &DataPath, employee_name: &str) -> io::Result<()> {
+        validate_employee_name(employee_name)?;
+
         println!("Adding new employee: {employee_name}");
         print!("Title: ");
         io::stdout().flush()?;
@@ -20,16 +24,38 @@ impl EmployeeService {
         employee_name: &str,
         title: &str,
     ) -> io::Result<()> {
+        validate_employee_name(employee_name)?;
+
+        if title.trim().is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Title cannot be empty",
+            ));
+        }
+
         let employee = Employee {
             name: employee_name.to_string(),
             title: title.to_string(),
         };
 
-        let toml = toml::to_string(&employee).unwrap();
+        let toml = toml::to_string(&employee).map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Failed to serialize employee data: {e}"),
+            )
+        })?;
+
         let path = data_path
             .employees_dir
             .join(format!("{employee_name}.toml"));
-        fs::write(path, toml)?;
+
+        // Use file locking to prevent concurrent modifications
+        let file = fs::File::create(&path)?;
+        FileExt::lock_exclusive(&file)?;
+        fs::write(&path, toml)?;
+        FileExt::unlock(&file)?;
+
+        info!("Employee '{}' added to {}", employee_name, path.display());
         println!("Employee '{employee_name}' added.");
         Ok(())
     }
@@ -63,12 +89,29 @@ impl EmployeeService {
     }
 
     pub fn get_employee(data_path: &DataPath, employee_name: &str) -> io::Result<Employee> {
+        validate_employee_name(employee_name)?;
+
         let employee_file = data_path
             .employees_dir
             .join(format!("{employee_name}.toml"));
-        let content = fs::read_to_string(employee_file)?;
-        let employee: Employee =
-            toml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        // Use file locking for read operations too
+        let file = fs::File::open(&employee_file)?;
+        FileExt::lock_shared(&file)?;
+        let content = fs::read_to_string(&employee_file)?;
+        FileExt::unlock(&file)?;
+
+        let employee: Employee = toml::from_str(&content).map_err(|e| {
+            warn!(
+                "Failed to parse employee file {}: {}",
+                employee_file.display(),
+                e
+            );
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Invalid employee file format: {e}"),
+            )
+        })?;
         Ok(employee)
     }
 
@@ -78,13 +121,18 @@ impl EmployeeService {
         new_name: &str,
         title: &str,
     ) -> io::Result<()> {
+        validate_employee_name(old_name)?;
+        validate_employee_name(new_name)?;
+
+        if title.trim().is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Title cannot be empty",
+            ));
+        }
+
         let old_path = data_path.employees_dir.join(format!("{old_name}.toml"));
         let new_path = data_path.employees_dir.join(format!("{new_name}.toml"));
-
-        // Remove old file if name changed
-        if old_name != new_name && old_path.exists() {
-            fs::remove_file(old_path)?;
-        }
 
         // Create updated employee
         let employee = Employee {
@@ -92,8 +140,26 @@ impl EmployeeService {
             title: title.to_string(),
         };
 
-        let toml = toml::to_string(&employee).unwrap();
-        fs::write(new_path, toml)?;
+        let toml = toml::to_string(&employee).map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Failed to serialize employee data: {e}"),
+            )
+        })?;
+
+        // Use file locking when writing
+        let file = fs::File::create(&new_path)?;
+        FileExt::lock_exclusive(&file)?;
+        fs::write(&new_path, toml)?;
+        FileExt::unlock(&file)?;
+
+        // Remove old file if name changed
+        if old_name != new_name && old_path.exists() {
+            fs::remove_file(&old_path)?;
+            info!("Removed old employee file: {}", old_path.display());
+        }
+
+        info!("Employee '{new_name}' updated (was '{old_name}')");
         Ok(())
     }
 }
@@ -107,7 +173,7 @@ mod tests {
     #[test]
     fn test_add_employee_with_data() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 
         EmployeeService::add_employee_with_data(&data_path, "John Doe", "Engineer").unwrap();
@@ -120,7 +186,7 @@ mod tests {
     #[test]
     fn test_update_employee() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 
         // Create initial employee
@@ -142,7 +208,7 @@ mod tests {
     #[test]
     fn test_update_employee_same_name() {
         let temp_dir = tempdir().unwrap();
-        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf()));
+        let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 
         // Create initial employee
