@@ -16,13 +16,25 @@ impl EmployeeService {
         let mut title = String::new();
         io::stdin().read_line(&mut title)?;
 
-        Self::add_employee_with_data(data_path, employee_name, title.trim())
+        print!("Committer Email (optional): ");
+        io::stdout().flush()?;
+        let mut email = String::new();
+        io::stdin().read_line(&mut email)?;
+        let email = email.trim();
+        let email = if email.is_empty() {
+            None
+        } else {
+            Some(email.to_string())
+        };
+
+        Self::add_employee_with_data(data_path, employee_name, title.trim(), email)
     }
 
     pub fn add_employee_with_data(
         data_path: &DataPath,
         employee_name: &str,
         title: &str,
+        committer_email: Option<String>,
     ) -> io::Result<()> {
         validate_employee_name(employee_name)?;
 
@@ -36,6 +48,7 @@ impl EmployeeService {
         let employee = Employee {
             name: employee_name.to_string(),
             title: title.to_string(),
+            committer_email,
         };
 
         let toml = toml::to_string(&employee).map_err(|e| {
@@ -120,6 +133,7 @@ impl EmployeeService {
         old_name: &str,
         new_name: &str,
         title: &str,
+        committer_email: Option<String>,
     ) -> io::Result<()> {
         validate_employee_name(old_name)?;
         validate_employee_name(new_name)?;
@@ -138,6 +152,7 @@ impl EmployeeService {
         let employee = Employee {
             name: new_name.to_string(),
             title: title.to_string(),
+            committer_email,
         };
 
         let toml = toml::to_string(&employee).map_err(|e| {
@@ -176,7 +191,7 @@ mod tests {
         let data_path = DataPath::new(Some(temp_dir.path().to_path_buf())).unwrap();
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 
-        EmployeeService::add_employee_with_data(&data_path, "John Doe", "Engineer").unwrap();
+        EmployeeService::add_employee_with_data(&data_path, "John Doe", "Engineer", None).unwrap();
 
         let employee = EmployeeService::get_employee(&data_path, "John Doe").unwrap();
         assert_eq!(employee.name, "John Doe");
@@ -190,11 +205,17 @@ mod tests {
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 
         // Create initial employee
-        EmployeeService::add_employee_with_data(&data_path, "John Doe", "Engineer").unwrap();
+        EmployeeService::add_employee_with_data(&data_path, "John Doe", "Engineer", None).unwrap();
 
         // Update employee
-        EmployeeService::update_employee(&data_path, "John Doe", "John Smith", "Senior Engineer")
-            .unwrap();
+        EmployeeService::update_employee(
+            &data_path,
+            "John Doe",
+            "John Smith",
+            "Senior Engineer",
+            None,
+        )
+        .unwrap();
 
         // Verify old file is gone and new one exists
         assert!(!EmployeeService::employee_exists(&data_path, "John Doe"));
@@ -212,11 +233,17 @@ mod tests {
         fs::create_dir_all(&data_path.employees_dir).unwrap();
 
         // Create initial employee
-        EmployeeService::add_employee_with_data(&data_path, "John Doe", "Engineer").unwrap();
+        EmployeeService::add_employee_with_data(&data_path, "John Doe", "Engineer", None).unwrap();
 
         // Update title only
-        EmployeeService::update_employee(&data_path, "John Doe", "John Doe", "Senior Engineer")
-            .unwrap();
+        EmployeeService::update_employee(
+            &data_path,
+            "John Doe",
+            "John Doe",
+            "Senior Engineer",
+            None,
+        )
+        .unwrap();
 
         let employee = EmployeeService::get_employee(&data_path, "John Doe").unwrap();
         assert_eq!(employee.name, "John Doe");

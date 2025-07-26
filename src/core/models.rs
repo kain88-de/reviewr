@@ -6,6 +6,7 @@ use std::path::PathBuf;
 pub struct Employee {
     pub name: String,
     pub title: String,
+    pub committer_email: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -14,7 +14,7 @@ fn test_add_employee() {
         .arg(dir.path())
         .arg("add")
         .arg("John Doe");
-    cmd.write_stdin("Engineer\n");
+    cmd.write_stdin("Engineer\ntest.user@example.com\n");
     cmd.assert().success();
 }
 
@@ -62,7 +62,7 @@ fn test_notes_evidence() {
         .arg(dir.path())
         .arg("add")
         .arg("Jane Doe");
-    cmd.write_stdin("Engineer\n");
+    cmd.write_stdin("Engineer\ntest.user@example.com\n");
     cmd.assert().success();
 
     let mut clipboard = arboard::Clipboard::new().unwrap();
@@ -95,7 +95,7 @@ fn test_list_employees() {
         .arg(dir.path())
         .arg("add")
         .arg("Alice Smith");
-    cmd.write_stdin("Manager\n");
+    cmd.write_stdin("Manager\ntest.manager@example.com\n");
     cmd.assert().success();
 
     let mut cmd = Command::cargo_bin("reviewr").unwrap();
@@ -104,7 +104,7 @@ fn test_list_employees() {
         .arg(dir.path())
         .arg("add")
         .arg("Bob Johnson");
-    cmd.write_stdin("Developer\n");
+    cmd.write_stdin("Developer\ntest.dev@example.com\n");
     cmd.assert().success();
 
     // Test list command

@@ -1,6 +1,7 @@
 use crate::core::{
     config::ConfigService,
     employee::EmployeeService,
+    gerrit::GerritService,
     models::{DataPath, validate_domain},
     notes::NotesService,
 };
@@ -40,6 +41,11 @@ pub enum Commands {
     },
     /// List all employees
     List,
+    /// Generate review report for an employee
+    Review {
+        /// The name of the employee (optional - if not provided, opens TUI selector)
+        employee: Option<String>,
+    },
     /// Manage configuration
     Config {
         #[command(subcommand)]
@@ -86,6 +92,101 @@ pub fn handle_list_command(data_path: &DataPath) -> io::Result<()> {
     }
 
     Ok(())
+}
+
+pub async fn handle_review_command(
+    data_path: &DataPath,
+    employee: &Option<String>,
+) -> io::Result<()> {
+    let employee_name = match employee {
+        Some(name) => name.clone(),
+        None => {
+            // Use TUI selector to choose employee
+            use crate::tui::EmployeeSelector;
+            let mut selector = EmployeeSelector::new(data_path)?;
+            match selector.run()? {
+                Some(selected) => selected,
+                None => {
+                    println!("No employee selected.");
+                    return Ok(());
+                }
+            }
+        }
+    };
+
+    // Get employee details
+    let employee = EmployeeService::get_employee(data_path, &employee_name)?;
+
+    // Check if employee has committer email
+    let email = match &employee.committer_email {
+        Some(email) if !email.trim().is_empty() => email,
+        _ => {
+            println!("Employee '{employee_name}' does not have a committer email configured.");
+            println!("Use 'reviewr edit {employee_name}' to add their committer email.");
+            return Ok(());
+        }
+    };
+
+    println!(
+        "Generating review report for {} ({})...",
+        employee.name, email
+    );
+    println!("This may take a moment...\n");
+
+    // Fetch metrics from Gerrit
+    match GerritService::get_employee_metrics(data_path, email).await {
+        Ok(metrics) => {
+            // Display the formatted report
+            display_activity_report(&employee, &metrics);
+            Ok(())
+        }
+        Err(e) => {
+            error!("Failed to fetch Gerrit metrics: {e}");
+            println!("❌ Failed to fetch review data: {e}");
+            println!("\nPossible issues:");
+            println!("• Check your Gerrit configuration in gerrit_config.toml");
+            println!("• Verify network connectivity to Gerrit instance");
+            println!("• Ensure HTTP credentials are correct");
+            Err(e)
+        }
+    }
+}
+
+fn display_activity_report(
+    employee: &crate::core::models::Employee,
+    metrics: &crate::core::gerrit::ActivityMetrics,
+) {
+    println!("📊 Review Activity Report");
+    println!("========================");
+    println!("Employee: {} ({})", employee.name, employee.title);
+    if let Some(email) = &employee.committer_email {
+        println!("Email: {email}");
+    }
+    println!("Period: Last 30 days");
+    println!();
+
+    println!("📈 Activity Metrics:");
+    println!("  • Commits Merged:     {}", metrics.commits_merged);
+    println!("  • Changes Created:    {}", metrics.changes_created);
+    println!("  • Reviews Given:      {}", metrics.reviews_given);
+    println!("  • Reviews Received:   {}", metrics.reviews_received);
+    println!();
+
+    // Add some basic insights
+    if metrics.commits_merged == 0 && metrics.changes_created > 0 {
+        println!("💡 Insights:");
+        println!("  • Has created changes but none have merged yet");
+    } else if metrics.reviews_given > metrics.reviews_received * 2 {
+        println!("💡 Insights:");
+        println!("  • Very active in reviewing others' code");
+    } else if metrics.changes_created > 0 && metrics.reviews_received == 0 {
+        println!("💡 Insights:");
+        println!("  • May need more code review on their changes");
+    }
+
+    if metrics.commits_merged + metrics.changes_created + metrics.reviews_given == 0 {
+        println!("ℹ️  No activity found in the last 30 days");
+    }
 }
 
 pub fn handle_add_command(data_path: &DataPath, employee: &Option<String>) -> io::Result<()> {
@@ -142,6 +243,7 @@ pub fn handle_edit_command(data_path: &DataPath, employee: &Option<String>) -> i
             let mut form = EmployeeForm::new_with_data(
                 existing_employee.name.clone(),
                 existing_employee.title.clone(),
+                existing_employee.committer_email.clone(),
             );
 
             match form.run(data_path)? {

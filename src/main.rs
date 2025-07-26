@@ -6,14 +6,15 @@ pub mod tui;
 use clap::Parser;
 use cli::{
     Cli, Commands, handle_add_command, handle_config_command, handle_edit_command,
-    handle_list_command, handle_notes_command,
+    handle_list_command, handle_notes_command, handle_review_command,
 };
 use core::models::DataPath;
 use std::fs;
 use std::io;
 use tui::EmployeeSelector;
 
-fn main() -> io::Result<()> {
+#[tokio::main]
+async fn main() -> io::Result<()> {
     // Initialize logging
     env_logger::init();
 
@@ -42,6 +43,9 @@ fn main() -> io::Result<()> {
         }
         Commands::List => {
             handle_list_command(&data_path)?;
+        }
+        Commands::Review { employee } => {
+            handle_review_command(&data_path, employee).await?;
         }
         Commands::Config { command } => {
             handle_config_command(&data_path, command)?;

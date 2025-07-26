@@ -17,6 +17,7 @@ use std::io;
 pub struct EmployeeData {
     pub name: String,
     pub title: String,
+    pub committer_email: String,
 }
 
 pub struct EmployeeForm {
@@ -44,6 +45,7 @@ impl EmployeeForm {
             employee: EmployeeData {
                 name: String::new(),
                 title: String::new(),
+                committer_email: String::new(),
             },
             original_name: None,
             current_field: 0,
@@ -51,11 +53,12 @@ impl EmployeeForm {
         }
     }
 
-    pub fn new_with_data(name: String, title: String) -> Self {
+    pub fn new_with_data(name: String, title: String, committer_email: Option<String>) -> Self {
         Self {
             employee: EmployeeData {
                 name: name.clone(),
                 title,
+                committer_email: committer_email.unwrap_or_default(),
             },
             original_name: Some(name),
             current_field: 0,
@@ -111,6 +114,7 @@ impl EmployeeForm {
                     match self.current_field {
                         0 => self.employee.name.push(c),
                         1 => self.employee.title.push(c),
+                        2 => self.employee.committer_email.push(c),
                         _ => {}
                     }
                     Ok(None)
@@ -123,17 +127,20 @@ impl EmployeeForm {
                         1 => {
                             self.employee.title.pop();
                         }
+                        2 => {
+                            self.employee.committer_email.pop();
+                        }
                         _ => {}
                     }
                     Ok(None)
                 }
                 KeyCode::Tab | KeyCode::Down => {
-                    self.current_field = (self.current_field + 1) % 2;
+                    self.current_field = (self.current_field + 1) % 3;
                     Ok(None)
                 }
                 KeyCode::BackTab | KeyCode::Up => {
                     self.current_field = if self.current_field == 0 {
-                        1
+                        2
                     } else {
                         self.current_field - 1
                     };
@@ -157,19 +164,31 @@ impl EmployeeForm {
                         match &self.original_name {
                             Some(original_name) => {
                                 // Update existing employee
+                                let email = if self.employee.committer_email.trim().is_empty() {
+                                    None
+                                } else {
+                                    Some(self.employee.committer_email.trim().to_string())
+                                };
                                 EmployeeService::update_employee(
                                     data_path,
                                     original_name,
                                     self.employee.name.trim(),
                                     self.employee.title.trim(),
+                                    email,
                                 )?;
                             }
                             None => {
                                 // Create new employee
+                                let email = if self.employee.committer_email.trim().is_empty() {
+                                    None
+                                } else {
+                                    Some(self.employee.committer_email.trim().to_string())
+                                };
                                 EmployeeService::add_employee_with_data(
                                     data_path,
                                     self.employee.name.trim(),
                                     self.employee.title.trim(),
+                                    email,
                                 )?;
                             }
                         }
@@ -194,6 +213,7 @@ impl EmployeeForm {
                     .direction(Direction::Vertical)
                     .margin(2)
                     .constraints([
+                        Constraint::Length(3),
                         Constraint::Length(3),
                         Constraint::Length(3),
                         Constraint::Length(2),
@@ -227,10 +247,25 @@ impl EmployeeForm {
                     .block(Block::default().borders(Borders::ALL).title("Job Title"));
                 f.render_widget(title_input, chunks[1]);
 
+                // Committer Email field
+                let email_style = if self.current_field == 2 {
+                    Style::default().fg(Color::Yellow)
+                } else {
+                    Style::default()
+                };
+                let email_input = Paragraph::new(self.employee.committer_email.as_str())
+                    .style(email_style)
+                    .block(
+                        Block::default()
+                            .borders(Borders::ALL)
+                            .title("Committer Email (optional)"),
+                    );
+                f.render_widget(email_input, chunks[2]);
+
                 // Instructions
                 let instructions = Paragraph::new("Tab: Next field | Enter: Save | Esc: Cancel")
                     .style(Style::default().fg(Color::Gray));
-                f.render_widget(instructions, chunks[2]);
+                f.render_widget(instructions, chunks[3]);
             }
             FormMode::Confirm => {
                 // Confirmation dialog
@@ -297,7 +332,8 @@ mod tests {
 
     #[test]
     fn test_employee_form_with_existing_data() {
-        let form = EmployeeForm::new_with_data("John Doe".to_string(), "Engineer".to_string());
+        let form =
+            EmployeeForm::new_with_data("John Doe".to_string(), "Engineer".to_string(), None);
         assert_eq!(form.employee.name, "John Doe");
         assert_eq!(form.employee.title, "Engineer");
         assert_eq!(form.original_name, Some("John Doe".to_string()));
@@ -308,6 +344,7 @@ mod tests {
         let data = EmployeeData {
             name: "Jane Smith".to_string(),
             title: "Manager".to_string(),
+            committer_email: "jane.smith@example.com".to_string(),
         };
         let cloned = data.clone();
         assert_eq!(data.name, cloned.name);
