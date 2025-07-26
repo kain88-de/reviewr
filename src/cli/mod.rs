@@ -1,9 +1,10 @@
 use crate::core::{
     config::ConfigService,
     employee::EmployeeService,
-    gerrit::GerritService,
+    gerrit::{GerritPlatform, GerritService},
     models::{DataPath, validate_domain},
     notes::NotesService,
+    platform::PlatformRegistry,
 };
 use clap::{Parser, Subcommand};
 use log::{error, info};
@@ -67,6 +68,19 @@ pub enum ConfigCommands {
         /// The value to set
         value: String,
     },
+}
+
+/// Initialize the platform registry with all available platforms
+fn create_platform_registry(data_path: &DataPath) -> PlatformRegistry {
+    let mut registry = PlatformRegistry::new();
+
+    // Register Gerrit platform
+    let gerrit_platform = GerritPlatform::new(data_path.clone());
+    registry.register_platform(Box::new(gerrit_platform));
+
+    // TODO: Register JIRA and GitLab platforms when implemented
+
+    registry
 }
 
 pub fn handle_list_command(data_path: &DataPath) -> io::Result<()> {
@@ -133,61 +147,51 @@ pub async fn handle_review_command(
     );
     println!("This may take a moment...\n");
 
-    // Fetch metrics from Gerrit
-    match GerritService::get_employee_metrics(data_path, email).await {
-        Ok(metrics) => {
-            // Display the formatted report
-            display_activity_report(&employee, &metrics);
+    // Create platform registry and get configured platforms
+    let registry = create_platform_registry(data_path);
+    let configured_platforms = registry.get_configured_platforms();
+
+    if configured_platforms.is_empty() {
+        println!("❌ No review platforms are configured.");
+        println!("\nTo get started:");
+        println!("• Configure Gerrit by creating gerrit_config.toml in your data directory");
+        println!("• Run 'reviewr config' to check current configuration");
+        return Ok(());
+    }
+
+    // For now, use the first configured platform (which should be Gerrit)
+    // TODO: Implement multi-platform TUI that can handle multiple platforms
+    let platform = configured_platforms[0];
+
+    match platform.get_detailed_activities(email, 30).await {
+        Ok(_detailed_activities) => {
+            // Convert platform-agnostic data back to Gerrit format for the current TUI
+            // TODO: Update TUI to work with platform-agnostic data
+            let (gerrit_detailed_metrics, gerrit_base_url) = GerritService::get_detailed_employee_metrics(data_path, email).await?;
+
+            // Launch interactive review browser
+            use crate::tui::ReviewBrowser;
+            let mut browser = ReviewBrowser::new(
+                employee.name.clone(),
+                email.clone(),
+                gerrit_detailed_metrics,
+                gerrit_base_url,
+            );
+            browser.run()?;
             Ok(())
         }
         Err(e) => {
-            error!("Failed to fetch Gerrit metrics: {e}");
+            error!("Failed to fetch review data from {}: {e}", platform.get_platform_name());
             println!("❌ Failed to fetch review data: {e}");
             println!("\nPossible issues:");
-            println!("• Check your Gerrit configuration in gerrit_config.toml");
-            println!("• Verify network connectivity to Gerrit instance");
-            println!("• Ensure HTTP credentials are correct");
+            println!("• Check your {} configuration", platform.get_platform_name());
+            println!("• Verify network connectivity to {} instance", platform.get_platform_name());
+            println!("• Ensure credentials are correct");
             Err(e)
         }
     }
 }
 
-fn display_activity_report(
-    employee: &crate::core::models::Employee,
-    metrics: &crate::core::gerrit::ActivityMetrics,
-) {
-    println!("📊 Review Activity Report");
-    println!("========================");
-    println!("Employee: {} ({})", employee.name, employee.title);
-    if let Some(email) = &employee.committer_email {
-        println!("Email: {email}");
-    }
-    println!("Period: Last 30 days");
-    println!();
-
-    println!("📈 Activity Metrics:");
-    println!("  • Commits Merged:     {}", metrics.commits_merged);
-    println!("  • Changes Created:    {}", metrics.changes_created);
-    println!("  • Reviews Given:      {}", metrics.reviews_given);
-    println!("  • Reviews Received:   {}", metrics.reviews_received);
-    println!();
-
-    // Add some basic insights
-    if metrics.commits_merged == 0 && metrics.changes_created > 0 {
-        println!("💡 Insights:");
-        println!("  • Has created changes but none have merged yet");
-    } else if metrics.reviews_given > metrics.reviews_received * 2 {
-        println!("💡 Insights:");
-        println!("  • Very active in reviewing others' code");
-    } else if metrics.changes_created > 0 && metrics.reviews_received == 0 {
-        println!("💡 Insights:");
-        println!("  • May need more code review on their changes");
-    }
-
-    if metrics.commits_merged + metrics.changes_created + metrics.reviews_given == 0 {
-        println!("ℹ️  No activity found in the last 30 days");
-    }
-}
 
 pub fn handle_add_command(data_path: &DataPath, employee: &Option<String>) -> io::Result<()> {
     match employee {

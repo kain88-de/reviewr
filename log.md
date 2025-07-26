@@ -66,16 +66,175 @@ Adding Gerrit integration to reviewr CLI tool for employee review activity track
 - **Network Handling**: ✅ Graceful failure when Gerrit instance unreachable
 - **Error Messages**: ✅ Clear guidance for configuration and connectivity issues
 
+### Phase 7: Interactive Review Browser ✅
+- **Date**: 2025-07-26
+- **Features**:
+  - Created detailed change fetching with full ChangeInfo structures
+  - Built interactive TUI with summary and detail views
+  - Added keyboard navigation and browser integration
+  - Implemented change URL generation and opening
+  - Added help system and navigation indicators
+
 ## Next Steps
 - [ ] Add integration tests for offline scenarios
 - [ ] Test with live Gerrit instance (when network available)
 - [ ] Optimize query performance for large datasets
+
+## Multi-Platform Integration Plan
+
+### JIRA Integration (Future Phase)
+**Goal**: Track employee involvement in ticket/project management
+
+**Implementation Plan**:
+1. **JIRA API Client** (`src/core/jira.rs`)
+   - Create JiraConfig struct (url, username, api_token)
+   - Implement JiraClient with REST API authentication
+   - Add JiraService similar to GerritService structure
+
+2. **JIRA Activity Metrics**:
+   - **Tickets Created**: Issues created by user
+   - **Tickets Resolved**: Issues resolved/closed by user
+   - **Tickets Assigned**: Currently assigned issues
+   - **Comments Added**: Comments/updates on issues
+   - **Sprint Participation**: Issues completed in sprints
+
+3. **Data Structures**:
+   ```rust
+   #[derive(Debug, Clone, Serialize, Deserialize)]
+   pub struct IssueInfo {
+       pub key: String,
+       pub summary: String,
+       pub status: String,
+       pub assignee: String,
+       pub created: String,
+       pub resolved: Option<String>,
+       pub project: String,
+   }
+
+   pub struct JiraActivityMetrics {
+       pub tickets_created: Vec<IssueInfo>,
+       pub tickets_resolved: Vec<IssueInfo>,
+       pub tickets_assigned: Vec<IssueInfo>,
+       pub comments_added: u32,
+   }
+   ```
+
+4. **API Endpoints**:
+   - `/rest/api/3/search` - JQL queries for ticket data
+   - `/rest/api/3/issue/{issueId}` - Detailed issue information
+   - `/rest/api/3/user/search` - User information
+
+5. **TUI Integration**:
+   - Add JIRA tabs to ReviewBrowser
+   - Show ticket lists with status coloring
+   - Link to JIRA ticket URLs for detailed viewing
+   - Filter by project, status, date ranges
+
+### GitLab Integration (Future Phase)
+**Goal**: Track merge request and repository activity
+
+**Implementation Plan**:
+1. **GitLab API Client** (`src/core/gitlab.rs`)
+   - Create GitLabConfig struct (url, access_token, username)
+   - Implement GitLabClient with token-based authentication
+   - Add GitLabService following established patterns
+
+2. **GitLab Activity Metrics**:
+   - **Merge Requests Created**: MRs authored by user
+   - **Merge Requests Merged**: Successfully merged MRs
+   - **Merge Requests Reviewed**: MRs where user provided reviews
+   - **Issues Created**: Issues opened by user
+   - **Commits Pushed**: Direct commits to repositories
+
+3. **Data Structures**:
+   ```rust
+   #[derive(Debug, Clone, Serialize, Deserialize)]
+   pub struct MergeRequestInfo {
+       pub iid: u32,
+       pub title: String,
+       pub state: String,
+       pub created_at: String,
+       pub merged_at: Option<String>,
+       pub source_branch: String,
+       pub target_branch: String,
+       pub project_id: u32,
+   }
+
+   pub struct GitLabActivityMetrics {
+       pub merge_requests_created: Vec<MergeRequestInfo>,
+       pub merge_requests_merged: Vec<MergeRequestInfo>,
+       pub merge_requests_reviewed: Vec<MergeRequestInfo>,
+       pub issues_created: Vec<IssueInfo>,
+       pub commits_pushed: u32,
+   }
+   ```
+
+4. **API Endpoints**:
+   - `/api/v4/merge_requests` - MR data with author/reviewer filters
+   - `/api/v4/projects/{id}/merge_requests` - Project-specific MRs
+   - `/api/v4/issues` - Issues with author filter
+   - `/api/v4/users/{id}/projects` - User's project involvement
+
+5. **TUI Integration**:
+   - Add GitLab tabs to ReviewBrowser
+   - Show MR lists with state indicators (Open/Merged/Closed)
+   - Link to GitLab MR/issue URLs
+   - Group by project/repository
+
+### Unified Review Dashboard
+**Goal**: Single view across all platforms (Gerrit + JIRA + GitLab)
+
+**Architecture**:
+1. **Platform Abstraction**:
+   ```rust
+   pub trait ReviewPlatform {
+       async fn get_activity_metrics(&self, user: &str, days: u32) -> Result<PlatformMetrics>;
+       fn get_platform_name(&self) -> &str;
+       fn is_configured(&self) -> bool;
+   }
+   ```
+
+2. **Unified Metrics**:
+   ```rust
+   pub struct UnifiedActivityMetrics {
+       pub gerrit: Option<DetailedActivityMetrics>,
+       pub jira: Option<JiraActivityMetrics>,
+       pub gitlab: Option<GitLabActivityMetrics>,
+   }
+   ```
+
+3. **Multi-Platform TUI**:
+   - Tab-based interface for each platform
+   - Summary view combining all platforms
+   - Cross-platform search and filtering
+   - Export unified reports to CSV/JSON
+
+### Configuration Management
+**Updates to config.toml**:
+```toml
+[gerrit]
+gerrit_url = "https://review.example.com"
+username = "user"
+http_password = "token"
+
+[jira]
+jira_url = "https://company.atlassian.net"
+username = "user@company.com"
+api_token = "token"
+
+[gitlab]
+gitlab_url = "https://gitlab.example.com"
+access_token = "token"
+username = "user"
+```
 
 ## Future Enhancements (Planned)
 - Quality metrics: Average comments per change, review turnaround time, success rate
 - Collaboration metrics: Response rates, cross-team reviews, mentoring activity
 - Trend analysis and historical comparisons
 - JSON/CSV export options
+- Multi-platform dashboard integration
+- Performance analytics and productivity insights
 
 ## Technical Notes
 - Using async/await for Gerrit API calls
