@@ -304,15 +304,14 @@ RUST_LOG=debug reviewr review "John Doe"
 
 # Check configuration files
 ls -la ~/.reviewr/
-cat ~/.reviewr/gerrit_config.toml
-cat ~/.reviewr/jira_config.toml
+cat ~/.reviewr/config.toml
 ```
 
 ### Validation Commands
 
 ```bash
 # Test TOML syntax
-toml-test ~/.reviewr/gerrit_config.toml
+toml-test ~/.reviewr/config.toml
 
 # Test network connectivity
 curl -u username:password https://gerrit.example.com/a/changes/?q=limit:1
