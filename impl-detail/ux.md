@@ -116,26 +116,6 @@ Related JIRA: PROJ-123
 Press Enter to open in browser | [A/R/M/O] to switch categories
 ```
 
-## Cross-System Features
-
-### Unified Search
-```
-🔍 Search across all systems:
-> auth dashboard
-
-Results (23 items):
-🔧 Gerrit (8):  "authentication", "dashboard" in subjects
-🎫 JIRA (12):   "auth", "dashboard" in summaries
-🦊 GitLab (3):  "authentication", "dashboard" in MR titles
-
-[Enter] to explore results by system | [Esc] to cancel
-```
-
-### Smart Linking
-- **Auto-detect references**: PROJ-123 mentioned in Gerrit commits → show JIRA link
-- **Bidirectional navigation**: From JIRA ticket, show related Gerrit changes
-- **Project mapping**: Configure relationships between systems
-
 ### Data Refresh Controls
 ```
 🔄 Refresh Options:
