@@ -2,16 +2,14 @@ use crate::core::gerrit::{ChangeInfo, DetailedActivityMetrics};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
     Frame, Terminal,
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    widgets::{
-        Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap,
-    },
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
 };
 use std::io;
 
@@ -34,7 +32,6 @@ impl ViewMode {
             ViewMode::ReviewsReceived => "📥 Reviews Received",
         }
     }
-
 }
 
 pub struct ReviewBrowser {
@@ -165,15 +162,24 @@ impl ReviewBrowser {
                     if let Some(selected) = self.list_state.selected() {
                         let changes = self.get_current_changes();
                         if let Some(change) = changes.get(selected) {
-                            let url = format!("{}/c/{}/+/{}", self.gerrit_base_url, change.project, change.number);
-                            println!("Opening: {}", url);
+                            let url = format!(
+                                "{}/c/{}/+/{}",
+                                self.gerrit_base_url, change.project, change.number
+                            );
+                            println!("Opening: {url}");
                             // Try to open the URL in the default browser
                             #[cfg(target_os = "linux")]
-                            std::process::Command::new("xdg-open").arg(&url).spawn().ok();
+                            std::process::Command::new("xdg-open")
+                                .arg(&url)
+                                .spawn()
+                                .ok();
                             #[cfg(target_os = "macos")]
                             std::process::Command::new("open").arg(&url).spawn().ok();
                             #[cfg(target_os = "windows")]
-                            std::process::Command::new("cmd").args(["/c", "start", &url]).spawn().ok();
+                            std::process::Command::new("cmd")
+                                .args(["/c", "start", &url])
+                                .spawn()
+                                .ok();
                         }
                     }
                 }
@@ -198,8 +204,8 @@ impl ReviewBrowser {
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Min(5),       // Main content needs minimum space
-                Constraint::Length(3),    // Navigation bar
+                Constraint::Min(5),    // Main content needs minimum space
+                Constraint::Length(3), // Navigation bar
             ])
             .margin(0)
             .split(f.area());
@@ -224,9 +230,9 @@ impl ReviewBrowser {
             .direction(Direction::Vertical)
             .margin(1)
             .constraints([
-                Constraint::Length(6),    // Header
-                Constraint::Length(7),    // Metrics
-                Constraint::Min(4),       // Instructions
+                Constraint::Length(6), // Header
+                Constraint::Length(7), // Metrics
+                Constraint::Min(4),    // Instructions
             ])
             .split(area);
 
@@ -265,7 +271,7 @@ impl ReviewBrowser {
             "📋 Navigation:\n\
              • Use letter keys (s/m/c/g/r) to switch views\n\
              • In lists: ↑/↓ or j/k to navigate, Enter to open in browser\n\
-             • Press 'h' for detailed help, 'q' to quit"
+             • Press 'h' for detailed help, 'q' to quit",
         )
         .style(Style::default().fg(Color::Gray))
         .wrap(Wrap { trim: true })
@@ -286,8 +292,8 @@ impl ReviewBrowser {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Min(10),      // List takes most space but at least 10 lines
-                    Constraint::Length(8),    // Details panel fixed height
+                    Constraint::Min(10),   // List takes most space but at least 10 lines
+                    Constraint::Length(8), // Details panel fixed height
                 ])
                 .split(area);
             (chunks[0], Some(chunks[1]))
@@ -300,7 +306,9 @@ impl ReviewBrowser {
             .enumerate()
             .map(|(i, change)| {
                 let style = if Some(i) == selected_index {
-                    Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
                 };
@@ -315,7 +323,10 @@ impl ReviewBrowser {
                 // Truncate subject if too long to prevent wrapping
                 let max_subject_len = area.width.saturating_sub(30); // Reserve space for other fields
                 let truncated_subject = if change.subject.len() > max_subject_len as usize {
-                    format!("{}...", &change.subject[..max_subject_len.saturating_sub(3) as usize])
+                    format!(
+                        "{}...",
+                        &change.subject[..max_subject_len.saturating_sub(3) as usize]
+                    )
                 } else {
                     change.subject.clone()
                 };
@@ -332,17 +343,16 @@ impl ReviewBrowser {
                     truncated_subject
                 );
 
-                ListItem::new(content)
-                    .style(style.fg(status_color))
+                ListItem::new(content).style(style.fg(status_color))
             })
             .collect();
 
         let list = List::new(items)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(format!("{} ({})", self.current_view.title(), changes_len))
-            )
+            .block(Block::default().borders(Borders::ALL).title(format!(
+                "{} ({})",
+                self.current_view.title(),
+                changes_len
+            )))
             .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
 
         f.render_stateful_widget(list, list_area, &mut self.list_state);
@@ -372,7 +382,7 @@ impl ReviewBrowser {
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .title("Selected Change Details")
+                        .title("Selected Change Details"),
                 );
 
             f.render_widget(detail, detail_area);
@@ -427,7 +437,7 @@ Press any key to close help...";
                 Block::default()
                     .borders(Borders::ALL)
                     .title("Help")
-                    .style(Style::default().fg(Color::Yellow))
+                    .style(Style::default().fg(Color::Yellow)),
             );
         f.render_widget(help, help_area);
     }

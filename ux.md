@@ -136,6 +136,36 @@ Results (23 items):
 - **Bidirectional navigation**: From JIRA ticket, show related Gerrit changes
 - **Project mapping**: Configure relationships between systems
 
+### Data Refresh Controls
+```
+🔄 Refresh Options:
+┌─────────────────────────────────────────────────────────────┐
+│ [r] Refresh Current View                                    │
+│     • Reload data for currently selected platform/category │
+│     • Shows loading indicator during refresh               │
+│     • Maintains current selection and scroll position      │
+│                                                             │
+│ [R] Force Refresh All Platforms                            │
+│     • Bypass cache and reload from all configured systems  │
+│     • Updates last-fetch timestamps                        │
+│     • Shows progress for each platform                     │
+│     • Returns to Summary view when complete                │
+│                                                             │
+│ Auto-refresh indicators:                                    │
+│ • 🕐 Data age: "Last updated: 5m ago"                      │
+│ • 🔄 Loading states: "Refreshing Gerrit..."               │
+│ • ✅ Success: "Updated 42 items from Gerrit"              │
+│ • ❌ Failed: "Gerrit refresh failed - using cached data"   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Refresh Behavior
+- **Smart caching**: Only refresh if data is older than 5 minutes
+- **Graceful failures**: Keep showing cached data if refresh fails
+- **Background updates**: Option to auto-refresh every 15 minutes
+- **User feedback**: Clear progress indicators and completion messages
+- **Preserve context**: Maintain user's current view and selection after refresh
+
 ### Export & Reporting
 ```
 📊 Generate Report:
@@ -186,7 +216,8 @@ Step 3/3: Summary
 🦊 GitLab: ❌ Authentication failed - check credentials
 
 💡 Some systems are unavailable. You can:
-• [R]etry connections
+• [r]efresh current view
+• [R]efresh all platforms (force reload)
 • [V]iew cached data
 • [C]onfigure credentials
 • [W]ork offline with available systems
@@ -208,7 +239,8 @@ Step 3/3: Summary
   - `/` - Start search
   - `h` - Help
   - `q` - Quit
-  - `r` - Refresh current view
+  - `r` - Refresh current view (reload data from platforms)
+  - `R` - Force refresh all platforms (bypass cache)
   - `c` - Configure current system
 
 ### Visual Consistency

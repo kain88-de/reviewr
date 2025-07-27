@@ -1,7 +1,8 @@
 use crate::core::{
     config::ConfigService,
     employee::EmployeeService,
-    gerrit::{GerritPlatform, GerritService},
+    gerrit::GerritPlatform,
+    jira::JiraPlatform,
     models::{DataPath, validate_domain},
     notes::NotesService,
     platform::PlatformRegistry,
@@ -78,7 +79,11 @@ fn create_platform_registry(data_path: &DataPath) -> PlatformRegistry {
     let gerrit_platform = GerritPlatform::new(data_path.clone());
     registry.register_platform(Box::new(gerrit_platform));
 
-    // TODO: Register JIRA and GitLab platforms when implemented
+    // Register JIRA platform
+    let jira_platform = JiraPlatform::new(data_path.clone());
+    registry.register_platform(Box::new(jira_platform));
+
+    // TODO: Register GitLab platform when implemented
 
     registry
 }
@@ -159,39 +164,31 @@ pub async fn handle_review_command(
         return Ok(());
     }
 
-    // For now, use the first configured platform (which should be Gerrit)
-    // TODO: Implement multi-platform TUI that can handle multiple platforms
-    let platform = configured_platforms[0];
+    // Launch multi-platform review browser
+    use crate::tui::MultiPlatformBrowser;
+    let mut browser = MultiPlatformBrowser::new(employee.name.clone(), email.clone(), &registry);
 
-    match platform.get_detailed_activities(email, 30).await {
-        Ok(_detailed_activities) => {
-            // Convert platform-agnostic data back to Gerrit format for the current TUI
-            // TODO: Update TUI to work with platform-agnostic data
-            let (gerrit_detailed_metrics, gerrit_base_url) = GerritService::get_detailed_employee_metrics(data_path, email).await?;
-
-            // Launch interactive review browser
-            use crate::tui::ReviewBrowser;
-            let mut browser = ReviewBrowser::new(
-                employee.name.clone(),
-                email.clone(),
-                gerrit_detailed_metrics,
-                gerrit_base_url,
+    // Load data from all configured platforms
+    match browser.load_data(&registry).await {
+        Ok(_) => {
+            println!(
+                "✅ Loaded data from {} platform(s)",
+                configured_platforms.len()
             );
             browser.run()?;
             Ok(())
         }
         Err(e) => {
-            error!("Failed to fetch review data from {}: {e}", platform.get_platform_name());
-            println!("❌ Failed to fetch review data: {e}");
+            error!("Failed to load review data: {e}");
+            println!("❌ Failed to load review data: {e}");
             println!("\nPossible issues:");
-            println!("• Check your {} configuration", platform.get_platform_name());
-            println!("• Verify network connectivity to {} instance", platform.get_platform_name());
+            println!("• Check platform configurations");
+            println!("• Verify network connectivity to platform instances");
             println!("• Ensure credentials are correct");
             Err(e)
         }
     }
 }
-
 
 pub fn handle_add_command(data_path: &DataPath, employee: &Option<String>) -> io::Result<()> {
     match employee {

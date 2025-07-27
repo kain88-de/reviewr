@@ -9,7 +9,11 @@ pub trait ReviewPlatform: Send + Sync {
     async fn get_activity_metrics(&self, user: &str, days: u32) -> io::Result<ActivityMetrics>;
 
     /// Get detailed activities with full item information
-    async fn get_detailed_activities(&self, user: &str, days: u32) -> io::Result<DetailedActivities>;
+    async fn get_detailed_activities(
+        &self,
+        user: &str,
+        days: u32,
+    ) -> io::Result<DetailedActivities>;
 
     /// Search for items matching a query
     async fn search_items(&self, query: &str, user: &str) -> io::Result<Vec<ActivityItem>>;
@@ -192,7 +196,7 @@ impl std::error::Error for PlatformError {}
 
 impl From<PlatformError> for io::Error {
     fn from(err: PlatformError) -> Self {
-        io::Error::new(io::ErrorKind::Other, err)
+        io::Error::other(err)
     }
 }
 
@@ -233,9 +237,10 @@ impl PlatformRegistry {
         let mut results = HashMap::new();
         for platform in self.platforms.values() {
             let status = if platform.is_configured() {
-                platform.test_connection().await.unwrap_or_else(|e| {
-                    ConnectionStatus::Error(e.to_string())
-                })
+                platform
+                    .test_connection()
+                    .await
+                    .unwrap_or_else(|e| ConnectionStatus::Error(e.to_string()))
             } else {
                 ConnectionStatus::NotConfigured
             };

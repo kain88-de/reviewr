@@ -1,7 +1,7 @@
 use crate::core::models::DataPath;
 use crate::core::platform::{
-    ActivityCategory, ActivityItem, ActivityMetrics as PlatformActivityMetrics,
-    ConnectionStatus, DetailedActivities, ReviewPlatform
+    ActivityCategory, ActivityItem, ActivityMetrics as PlatformActivityMetrics, ConnectionStatus,
+    DetailedActivities, ReviewPlatform,
 };
 use async_trait::async_trait;
 use base64::Engine;
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::io;
 use std::time::Duration;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GerritConfig {
     pub gerrit_url: String,
     pub username: String,
@@ -199,22 +199,38 @@ impl GerritClient {
         })
     }
 
-    async fn get_detailed_changes_created(&self, email: &str, days: u32) -> io::Result<Vec<ChangeInfo>> {
+    async fn get_detailed_changes_created(
+        &self,
+        email: &str,
+        days: u32,
+    ) -> io::Result<Vec<ChangeInfo>> {
         let query = format!("owner:{email} -age:{days}d");
         self.query_detailed_changes(&query).await
     }
 
-    async fn get_detailed_changes_merged(&self, email: &str, days: u32) -> io::Result<Vec<ChangeInfo>> {
+    async fn get_detailed_changes_merged(
+        &self,
+        email: &str,
+        days: u32,
+    ) -> io::Result<Vec<ChangeInfo>> {
         let query = format!("owner:{email} status:merged -age:{days}d");
         self.query_detailed_changes(&query).await
     }
 
-    async fn get_detailed_reviews_given(&self, email: &str, days: u32) -> io::Result<Vec<ChangeInfo>> {
+    async fn get_detailed_reviews_given(
+        &self,
+        email: &str,
+        days: u32,
+    ) -> io::Result<Vec<ChangeInfo>> {
         let query = format!("reviewer:{email} -age:{days}d");
         self.query_detailed_changes(&query).await
     }
 
-    async fn get_detailed_reviews_received(&self, email: &str, days: u32) -> io::Result<Vec<ChangeInfo>> {
+    async fn get_detailed_reviews_received(
+        &self,
+        email: &str,
+        days: u32,
+    ) -> io::Result<Vec<ChangeInfo>> {
         let query = format!("owner:{email} -age:{days}d");
         self.query_detailed_changes(&query).await
     }
@@ -322,7 +338,9 @@ impl GerritService {
             })?;
 
         let client = GerritClient::new(&config)?;
-        let metrics = client.get_detailed_activity_metrics(employee_email, 30).await?;
+        let metrics = client
+            .get_detailed_activity_metrics(employee_email, 30)
+            .await?;
         let base_url = config.gerrit_url.trim_end_matches('/').to_string();
 
         Ok((metrics, base_url))
@@ -341,27 +359,55 @@ impl GerritPlatform {
 
     /// Convert Gerrit's ActivityMetrics to platform ActivityMetrics
     fn convert_metrics(&self, gerrit_metrics: &ActivityMetrics) -> PlatformActivityMetrics {
-        let mut metrics = PlatformActivityMetrics::default();
-        metrics.total_items = gerrit_metrics.commits_merged +
-                             gerrit_metrics.changes_created +
-                             gerrit_metrics.reviews_given +
-                             gerrit_metrics.reviews_received;
+        let mut metrics = PlatformActivityMetrics {
+            total_items: gerrit_metrics.commits_merged
+                + gerrit_metrics.changes_created
+                + gerrit_metrics.reviews_given
+                + gerrit_metrics.reviews_received,
+            ..Default::default()
+        };
 
-        metrics.items_by_category.insert(ActivityCategory::ChangesMerged, gerrit_metrics.commits_merged);
-        metrics.items_by_category.insert(ActivityCategory::ChangesCreated, gerrit_metrics.changes_created);
-        metrics.items_by_category.insert(ActivityCategory::ReviewsGiven, gerrit_metrics.reviews_given);
-        metrics.items_by_category.insert(ActivityCategory::ReviewsReceived, gerrit_metrics.reviews_received);
+        metrics.items_by_category.insert(
+            ActivityCategory::ChangesMerged,
+            gerrit_metrics.commits_merged,
+        );
+        metrics.items_by_category.insert(
+            ActivityCategory::ChangesCreated,
+            gerrit_metrics.changes_created,
+        );
+        metrics
+            .items_by_category
+            .insert(ActivityCategory::ReviewsGiven, gerrit_metrics.reviews_given);
+        metrics.items_by_category.insert(
+            ActivityCategory::ReviewsReceived,
+            gerrit_metrics.reviews_received,
+        );
 
-        metrics.platform_specific.insert("commits_merged".to_string(), gerrit_metrics.commits_merged);
-        metrics.platform_specific.insert("changes_created".to_string(), gerrit_metrics.changes_created);
-        metrics.platform_specific.insert("reviews_given".to_string(), gerrit_metrics.reviews_given);
-        metrics.platform_specific.insert("reviews_received".to_string(), gerrit_metrics.reviews_received);
+        metrics
+            .platform_specific
+            .insert("commits_merged".to_string(), gerrit_metrics.commits_merged);
+        metrics.platform_specific.insert(
+            "changes_created".to_string(),
+            gerrit_metrics.changes_created,
+        );
+        metrics
+            .platform_specific
+            .insert("reviews_given".to_string(), gerrit_metrics.reviews_given);
+        metrics.platform_specific.insert(
+            "reviews_received".to_string(),
+            gerrit_metrics.reviews_received,
+        );
 
         metrics
     }
 
     /// Convert Gerrit ChangeInfo to platform ActivityItem
-    fn convert_change_to_item(&self, change: &ChangeInfo, category: ActivityCategory, base_url: &str) -> ActivityItem {
+    fn convert_change_to_item(
+        &self,
+        change: &ChangeInfo,
+        category: ActivityCategory,
+        base_url: &str,
+    ) -> ActivityItem {
         let mut metadata = std::collections::HashMap::new();
         metadata.insert("change_id".to_string(), change.change_id.clone());
         metadata.insert("project".to_string(), change.project.clone());
@@ -391,41 +437,70 @@ impl GerritPlatform {
 
 #[async_trait]
 impl ReviewPlatform for GerritPlatform {
-    async fn get_activity_metrics(&self, user: &str, _days: u32) -> std::io::Result<PlatformActivityMetrics> {
+    async fn get_activity_metrics(
+        &self,
+        user: &str,
+        _days: u32,
+    ) -> std::io::Result<PlatformActivityMetrics> {
         let gerrit_metrics = GerritService::get_employee_metrics(&self.data_path, user).await?;
         Ok(self.convert_metrics(&gerrit_metrics))
     }
 
-    async fn get_detailed_activities(&self, user: &str, _days: u32) -> std::io::Result<DetailedActivities> {
-        let (detailed_metrics, base_url) = GerritService::get_detailed_employee_metrics(&self.data_path, user).await?;
+    async fn get_detailed_activities(
+        &self,
+        user: &str,
+        _days: u32,
+    ) -> std::io::Result<DetailedActivities> {
+        let (detailed_metrics, base_url) =
+            GerritService::get_detailed_employee_metrics(&self.data_path, user).await?;
 
         let mut activities = DetailedActivities::default();
 
         // Convert each category of changes to activity items
-        let changes_created: Vec<ActivityItem> = detailed_metrics.changes_created
+        let changes_created: Vec<ActivityItem> = detailed_metrics
+            .changes_created
             .iter()
-            .map(|change| self.convert_change_to_item(change, ActivityCategory::ChangesCreated, &base_url))
+            .map(|change| {
+                self.convert_change_to_item(change, ActivityCategory::ChangesCreated, &base_url)
+            })
             .collect();
 
-        let changes_merged: Vec<ActivityItem> = detailed_metrics.commits_merged
+        let changes_merged: Vec<ActivityItem> = detailed_metrics
+            .commits_merged
             .iter()
-            .map(|change| self.convert_change_to_item(change, ActivityCategory::ChangesMerged, &base_url))
+            .map(|change| {
+                self.convert_change_to_item(change, ActivityCategory::ChangesMerged, &base_url)
+            })
             .collect();
 
-        let reviews_given: Vec<ActivityItem> = detailed_metrics.reviews_given
+        let reviews_given: Vec<ActivityItem> = detailed_metrics
+            .reviews_given
             .iter()
-            .map(|change| self.convert_change_to_item(change, ActivityCategory::ReviewsGiven, &base_url))
+            .map(|change| {
+                self.convert_change_to_item(change, ActivityCategory::ReviewsGiven, &base_url)
+            })
             .collect();
 
-        let reviews_received: Vec<ActivityItem> = detailed_metrics.reviews_received
+        let reviews_received: Vec<ActivityItem> = detailed_metrics
+            .reviews_received
             .iter()
-            .map(|change| self.convert_change_to_item(change, ActivityCategory::ReviewsReceived, &base_url))
+            .map(|change| {
+                self.convert_change_to_item(change, ActivityCategory::ReviewsReceived, &base_url)
+            })
             .collect();
 
-        activities.items_by_category.insert(ActivityCategory::ChangesCreated, changes_created);
-        activities.items_by_category.insert(ActivityCategory::ChangesMerged, changes_merged);
-        activities.items_by_category.insert(ActivityCategory::ReviewsGiven, reviews_given);
-        activities.items_by_category.insert(ActivityCategory::ReviewsReceived, reviews_received);
+        activities
+            .items_by_category
+            .insert(ActivityCategory::ChangesCreated, changes_created);
+        activities
+            .items_by_category
+            .insert(ActivityCategory::ChangesMerged, changes_merged);
+        activities
+            .items_by_category
+            .insert(ActivityCategory::ReviewsGiven, reviews_given);
+        activities
+            .items_by_category
+            .insert(ActivityCategory::ReviewsReceived, reviews_received);
 
         Ok(activities)
     }
@@ -438,8 +513,9 @@ impl ReviewPlatform for GerritPlatform {
         let mut results = Vec::new();
         for items in activities.items_by_category.values() {
             for item in items {
-                if item.title.to_lowercase().contains(&query.to_lowercase()) ||
-                   item.project.to_lowercase().contains(&query.to_lowercase()) {
+                if item.title.to_lowercase().contains(&query.to_lowercase())
+                    || item.project.to_lowercase().contains(&query.to_lowercase())
+                {
                     results.push(item.clone());
                 }
             }
@@ -480,12 +556,14 @@ impl ReviewPlatform for GerritPlatform {
                                 } else if e.to_string().contains("timeout") {
                                     Ok(ConnectionStatus::Warning("Connection timeout".to_string()))
                                 } else {
-                                    Ok(ConnectionStatus::Error(format!("Connection failed: {}", e)))
+                                    Ok(ConnectionStatus::Error(format!("Connection failed: {e}")))
                                 }
                             }
                         }
                     }
-                    Err(e) => Ok(ConnectionStatus::Error(format!("Client creation failed: {}", e))),
+                    Err(e) => Ok(ConnectionStatus::Error(format!(
+                        "Client creation failed: {e}"
+                    ))),
                 }
             }
             None => Ok(ConnectionStatus::NotConfigured),
