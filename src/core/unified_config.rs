@@ -8,7 +8,6 @@ use std::io;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnifiedConfig {
     pub platforms: PlatformConfigs,
-    pub cross_references: CrossSystemMapping,
     pub ui_preferences: UiPreferences,
     #[serde(default)]
     pub version: u32,
@@ -18,7 +17,6 @@ impl Default for UnifiedConfig {
     fn default() -> Self {
         Self {
             platforms: PlatformConfigs::default(),
-            cross_references: CrossSystemMapping::default(),
             ui_preferences: UiPreferences::default(),
             version: 1,
         }
@@ -59,35 +57,6 @@ pub struct GitLabConfig {
     pub project_filter: Vec<String>,
 }
 
-/// Cross-system mapping and linking configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct CrossSystemMapping {
-    pub project_mappings: Vec<ProjectMapping>,
-    pub auto_link_patterns: Vec<LinkPattern>,
-    #[serde(default)]
-    pub enable_smart_linking: bool,
-}
-
-/// Maps projects/repositories across different platforms
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProjectMapping {
-    pub name: String,
-    pub gerrit_project: Option<String>,
-    pub jira_project: Option<String>,
-    pub gitlab_project: Option<String>,
-    pub description: Option<String>,
-}
-
-/// Pattern for automatically detecting cross-references
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LinkPattern {
-    pub name: String,
-    pub pattern: String,
-    pub from_platform: String,
-    pub to_platform: String,
-    pub url_template: String,
-    pub enabled: bool,
-}
 
 /// UI preferences and customization
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,8 +65,6 @@ pub struct UiPreferences {
     pub default_time_period_days: u32,
     #[serde(default = "default_true")]
     pub show_platform_icons: bool,
-    #[serde(default = "default_true")]
-    pub enable_cross_references: bool,
     #[serde(default)]
     pub preferred_platform_order: Vec<String>,
     #[serde(default)]
@@ -109,7 +76,6 @@ impl Default for UiPreferences {
         Self {
             default_time_period_days: 30,
             show_platform_icons: true,
-            enable_cross_references: true,
             preferred_platform_order: vec![
                 "gerrit".to_string(),
                 "jira".to_string(),
@@ -383,43 +349,4 @@ impl UnifiedConfigService {
         platforms
     }
 
-    /// Create default project mappings based on configured platforms
-    pub fn create_default_project_mappings(config: &UnifiedConfig) -> Vec<ProjectMapping> {
-        let mut mappings = Vec::new();
-
-        // If we have both Gerrit and JIRA, create some common mappings
-        if config.platforms.gerrit.is_some() && config.platforms.jira.is_some() {
-            mappings.push(ProjectMapping {
-                name: "example-project".to_string(),
-                gerrit_project: Some("example-project".to_string()),
-                jira_project: Some("EX".to_string()),
-                gitlab_project: None,
-                description: Some("Example project mapping".to_string()),
-            });
-        }
-
-        mappings
-    }
-
-    /// Create default link patterns for cross-system references
-    pub fn create_default_link_patterns() -> Vec<LinkPattern> {
-        vec![
-            LinkPattern {
-                name: "JIRA ticket in Gerrit".to_string(),
-                pattern: r"([A-Z]+-\d+)".to_string(),
-                from_platform: "gerrit".to_string(),
-                to_platform: "jira".to_string(),
-                url_template: "{jira_url}/browse/{ticket_id}".to_string(),
-                enabled: true,
-            },
-            LinkPattern {
-                name: "Gerrit change in JIRA".to_string(),
-                pattern: r"I([a-f0-9]{40})".to_string(),
-                from_platform: "jira".to_string(),
-                to_platform: "gerrit".to_string(),
-                url_template: "{gerrit_url}/q/{change_id}".to_string(),
-                enabled: true,
-            },
-        ]
-    }
 }

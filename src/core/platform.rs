@@ -43,7 +43,6 @@ pub struct ActivityMetrics {
 #[derive(Debug, Clone, Default)]
 pub struct DetailedActivities {
     pub items_by_category: HashMap<ActivityCategory, Vec<ActivityItem>>,
-    pub cross_references: Vec<CrossReference>,
 }
 
 /// Individual activity item (change, ticket, MR, etc.)
@@ -145,29 +144,6 @@ impl ConnectionStatus {
             ConnectionStatus::NotConfigured => "⚪",
         }
     }
-}
-
-/// Cross-reference between items on different platforms
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CrossReference {
-    pub from_platform: String,
-    pub from_id: String,
-    pub to_platform: String,
-    pub to_id: String,
-    pub reference_type: CrossReferenceType,
-    pub confidence: f64, // 0.0 to 1.0
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CrossReferenceType {
-    /// Direct mention (e.g., "PROJ-123" in commit message)
-    DirectMention,
-    /// Shared project/component
-    ProjectRelated,
-    /// Time-based correlation
-    TimeCorrelated,
-    /// Manual mapping
-    Manual,
 }
 
 /// Error types for platform operations

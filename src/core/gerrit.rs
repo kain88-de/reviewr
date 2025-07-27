@@ -289,24 +289,16 @@ pub struct GerritService;
 
 impl GerritService {
     pub fn load_gerrit_config(data_path: &DataPath) -> io::Result<Option<GerritConfig>> {
-        let config_path = data_path.root.join("gerrit_config.toml");
+        use crate::core::unified_config::UnifiedConfigService;
 
-        if !config_path.exists() {
-            info!("Gerrit config not found at {}", config_path.display());
-            return Ok(None);
+        let unified_config = UnifiedConfigService::load_config(data_path)?;
+        if let Some(gerrit_config) = unified_config.platforms.gerrit {
+            info!("Loaded Gerrit config from unified config");
+            Ok(Some(gerrit_config))
+        } else {
+            info!("Gerrit config not found in unified config");
+            Ok(None)
         }
-
-        let content = std::fs::read_to_string(&config_path)?;
-        let config: GerritConfig = toml::from_str(&content).map_err(|e| {
-            error!("Failed to parse Gerrit config: {e}");
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("Invalid Gerrit config: {e}"),
-            )
-        })?;
-
-        info!("Loaded Gerrit config from {}", config_path.display());
-        Ok(Some(config))
     }
 
     pub async fn get_employee_metrics(
