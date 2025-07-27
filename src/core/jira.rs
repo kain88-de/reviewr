@@ -3,6 +3,7 @@ use crate::core::platform::{
     ActivityCategory, ActivityItem, ActivityMetrics, ConnectionStatus, DetailedActivities,
     ReviewPlatform,
 };
+use crate::core::unified_config::JiraConfig;
 use async_trait::async_trait;
 use base64::Engine;
 use log::{error, info};
@@ -12,16 +13,6 @@ use std::collections::HashMap;
 use std::io;
 use std::time::Duration;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JiraConfig {
-    pub jira_url: String,
-    pub username: String,
-    pub api_token: String,
-    #[serde(default)]
-    pub project_filter: Vec<String>,
-    #[serde(default)]
-    pub custom_fields: HashMap<String, String>,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssueInfo {
@@ -371,24 +362,16 @@ pub struct JiraService;
 
 impl JiraService {
     pub fn load_jira_config(data_path: &DataPath) -> io::Result<Option<JiraConfig>> {
-        let config_path = data_path.root.join("jira_config.toml");
+        use crate::core::unified_config::UnifiedConfigService;
 
-        if !config_path.exists() {
-            info!("JIRA config not found at {}", config_path.display());
-            return Ok(None);
+        let unified_config = UnifiedConfigService::load_config(data_path)?;
+        if let Some(jira_config) = unified_config.platforms.jira {
+            info!("Loaded JIRA config from unified config");
+            Ok(Some(jira_config))
+        } else {
+            info!("JIRA config not found in unified config");
+            Ok(None)
         }
-
-        let content = std::fs::read_to_string(&config_path)?;
-        let config: JiraConfig = toml::from_str(&content).map_err(|e| {
-            error!("Failed to parse JIRA config: {e}");
-            io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("Invalid JIRA config: {e}"),
-            )
-        })?;
-
-        info!("Loaded JIRA config from {}", config_path.display());
-        Ok(Some(config))
     }
 
     pub async fn get_employee_metrics(
