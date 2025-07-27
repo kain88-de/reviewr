@@ -290,15 +290,7 @@ pub struct GerritService;
 impl GerritService {
     pub fn load_gerrit_config(data_path: &DataPath) -> io::Result<Option<GerritConfig>> {
         use crate::core::unified_config::UnifiedConfigService;
-
-        let unified_config = UnifiedConfigService::load_config(data_path)?;
-        if let Some(gerrit_config) = unified_config.platforms.gerrit {
-            info!("Loaded Gerrit config from unified config");
-            Ok(Some(gerrit_config))
-        } else {
-            info!("Gerrit config not found in unified config");
-            Ok(None)
-        }
+        UnifiedConfigService::load_gerrit_config(data_path)
     }
 
     pub async fn get_employee_metrics(

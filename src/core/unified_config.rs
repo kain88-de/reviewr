@@ -164,177 +164,30 @@ impl UnifiedConfigService {
         Ok(UnifiedConfig::default())
     }
 
-    /// Get configuration for a specific platform
-    pub fn get_platform_config<'a, T>(config: &'a UnifiedConfig, platform_id: &str) -> Option<&'a T>
-    where
-        T: 'static,
-    {
-        match platform_id {
-            "gerrit" => {
-                config.platforms.gerrit.as_ref().and_then(|c| {
-                    // Safe cast since we know the type
-                    (c as &dyn std::any::Any).downcast_ref::<T>()
-                })
-            }
-            "jira" => config
-                .platforms
-                .jira
-                .as_ref()
-                .and_then(|c| (c as &dyn std::any::Any).downcast_ref::<T>()),
-            "gitlab" => config
-                .platforms
-                .gitlab
-                .as_ref()
-                .and_then(|c| (c as &dyn std::any::Any).downcast_ref::<T>()),
-            _ => None,
+    /// Load Gerrit configuration from unified config
+    pub fn load_gerrit_config(data_path: &DataPath) -> io::Result<Option<GerritConfig>> {
+        let config = Self::load_config(data_path)?;
+        if let Some(gerrit_config) = config.platforms.gerrit {
+            log::info!("Loaded Gerrit config from unified config");
+            Ok(Some(gerrit_config))
+        } else {
+            log::info!("Gerrit config not found in unified config");
+            Ok(None)
         }
     }
 
-    /// Update configuration for a specific platform
-    pub fn update_platform_config(
-        &self,
-        config: &mut UnifiedConfig,
-        platform_id: &str,
-        platform_config: serde_json::Value,
-    ) -> io::Result<()> {
-        match platform_id {
-            "gerrit" => {
-                let gerrit_config: GerritConfig =
-                    serde_json::from_value(platform_config).map_err(|e| {
-                        io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            format!("Invalid Gerrit config: {e}"),
-                        )
-                    })?;
-                config.platforms.gerrit = Some(gerrit_config);
-            }
-            "jira" => {
-                let jira_config: JiraConfig =
-                    serde_json::from_value(platform_config).map_err(|e| {
-                        io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            format!("Invalid JIRA config: {e}"),
-                        )
-                    })?;
-                config.platforms.jira = Some(jira_config);
-            }
-            "gitlab" => {
-                let gitlab_config: GitLabConfig =
-                    serde_json::from_value(platform_config).map_err(|e| {
-                        io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            format!("Invalid GitLab config: {e}"),
-                        )
-                    })?;
-                config.platforms.gitlab = Some(gitlab_config);
-            }
-            _ => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!("Unknown platform: {platform_id}"),
-                ));
-            }
+    /// Load JIRA configuration from unified config
+    pub fn load_jira_config(data_path: &DataPath) -> io::Result<Option<JiraConfig>> {
+        let config = Self::load_config(data_path)?;
+        if let Some(jira_config) = config.platforms.jira {
+            log::info!("Loaded JIRA config from unified config");
+            Ok(Some(jira_config))
+        } else {
+            log::info!("JIRA config not found in unified config");
+            Ok(None)
         }
-        Ok(())
     }
 
-    /// Validate configuration for a platform
-    pub fn validate_platform_config(
-        platform_id: &str,
-        config: &serde_json::Value,
-    ) -> io::Result<()> {
-        match platform_id {
-            "gerrit" => {
-                let _: GerritConfig = serde_json::from_value(config.clone()).map_err(|e| {
-                    io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        format!("Invalid Gerrit config: {e}"),
-                    )
-                })?;
-                // Additional validation could go here
-            }
-            "jira" => {
-                let jira_config: JiraConfig =
-                    serde_json::from_value(config.clone()).map_err(|e| {
-                        io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            format!("Invalid JIRA config: {e}"),
-                        )
-                    })?;
 
-                // Validate URL format
-                if !jira_config.jira_url.starts_with("http") {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "JIRA URL must start with http:// or https://",
-                    ));
-                }
-
-                // Validate required fields
-                if jira_config.username.trim().is_empty() {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "JIRA username cannot be empty",
-                    ));
-                }
-
-                if jira_config.api_token.trim().is_empty() {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "JIRA API token cannot be empty",
-                    ));
-                }
-            }
-            "gitlab" => {
-                let gitlab_config: GitLabConfig =
-                    serde_json::from_value(config.clone()).map_err(|e| {
-                        io::Error::new(
-                            io::ErrorKind::InvalidData,
-                            format!("Invalid GitLab config: {e}"),
-                        )
-                    })?;
-
-                // Validate URL format
-                if !gitlab_config.gitlab_url.starts_with("http") {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "GitLab URL must start with http:// or https://",
-                    ));
-                }
-
-                // Validate required fields
-                if gitlab_config.access_token.trim().is_empty() {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "GitLab access token cannot be empty",
-                    ));
-                }
-            }
-            _ => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!("Unknown platform: {platform_id}"),
-                ));
-            }
-        }
-        Ok(())
-    }
-
-    /// Get enabled platforms from configuration
-    pub fn get_enabled_platforms(config: &UnifiedConfig) -> Vec<String> {
-        let mut platforms = Vec::new();
-
-        if config.platforms.gerrit.is_some() {
-            platforms.push("gerrit".to_string());
-        }
-        if config.platforms.jira.is_some() {
-            platforms.push("jira".to_string());
-        }
-        if config.platforms.gitlab.is_some() {
-            platforms.push("gitlab".to_string());
-        }
-
-        platforms
-    }
 
 }

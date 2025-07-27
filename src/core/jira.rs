@@ -363,15 +363,7 @@ pub struct JiraService;
 impl JiraService {
     pub fn load_jira_config(data_path: &DataPath) -> io::Result<Option<JiraConfig>> {
         use crate::core::unified_config::UnifiedConfigService;
-
-        let unified_config = UnifiedConfigService::load_config(data_path)?;
-        if let Some(jira_config) = unified_config.platforms.jira {
-            info!("Loaded JIRA config from unified config");
-            Ok(Some(jira_config))
-        } else {
-            info!("JIRA config not found in unified config");
-            Ok(None)
-        }
+        UnifiedConfigService::load_jira_config(data_path)
     }
 
     pub async fn get_employee_metrics(
