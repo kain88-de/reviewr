@@ -4,10 +4,27 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io;
 
+/// Global settings that apply across all platforms
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GlobalSettings {
+    #[serde(default)]
+    pub allowed_domains: Vec<String>,
+}
+
+impl Default for GlobalSettings {
+    fn default() -> Self {
+        Self {
+            allowed_domains: vec![],
+        }
+    }
+}
+
 /// Unified configuration supporting multiple review platforms
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnifiedConfig {
     pub platforms: PlatformConfigs,
+    #[serde(default)]
+    pub global_settings: GlobalSettings,
     pub ui_preferences: UiPreferences,
     #[serde(default)]
     pub version: u32,
@@ -17,6 +34,7 @@ impl Default for UnifiedConfig {
     fn default() -> Self {
         Self {
             platforms: PlatformConfigs::default(),
+            global_settings: GlobalSettings::default(),
             ui_preferences: UiPreferences::default(),
             version: 1,
         }
@@ -122,8 +140,8 @@ impl UnifiedConfigService {
             return Ok(config);
         }
 
-        // If no unified config, try to migrate from legacy configs
-        Self::migrate_from_legacy(data_path)
+        // If no unified config, create default
+        Self::create_default_config(data_path)
     }
 
     /// Save unified configuration
@@ -141,39 +159,9 @@ impl UnifiedConfigService {
         Ok(())
     }
 
-    /// Migrate from legacy configuration files
-    fn migrate_from_legacy(data_path: &DataPath) -> io::Result<UnifiedConfig> {
-        let mut config = UnifiedConfig::default();
-
-        // Try to load legacy Gerrit config
-        let gerrit_config_path = data_path.root.join("gerrit_config.toml");
-        if gerrit_config_path.exists() {
-            let content = std::fs::read_to_string(&gerrit_config_path)?;
-            let gerrit_config: GerritConfig = toml::from_str(&content).map_err(|e| {
-                io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("Invalid Gerrit config format: {e}"),
-                )
-            })?;
-            config.platforms.gerrit = Some(gerrit_config);
-            log::info!("Migrated Gerrit configuration from legacy file");
-        }
-
-        // Try to load legacy main config (allowed_domains)
-        let main_config_path = data_path.config_path();
-        if main_config_path.exists() {
-            let content = std::fs::read_to_string(&main_config_path)?;
-            if let Ok(legacy_config) = toml::from_str::<crate::core::models::Config>(&content) {
-                // Preserve allowed_domains in UI preferences or platform-specific config
-                log::info!(
-                    "Found legacy config with allowed_domains: {:?}",
-                    legacy_config.allowed_domains
-                );
-                // TODO: Decide where to store allowed_domains in unified config
-            }
-        }
-
-        Ok(config)
+    /// Create default configuration if none exists
+    fn create_default_config(_data_path: &DataPath) -> io::Result<UnifiedConfig> {
+        Ok(UnifiedConfig::default())
     }
 
     /// Get configuration for a specific platform

@@ -1,4 +1,3 @@
-pub mod config;
 pub mod employee;
 pub mod gerrit;
 pub mod jira;

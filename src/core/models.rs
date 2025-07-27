@@ -9,10 +9,6 @@ pub struct Employee {
     pub committer_email: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Config {
-    pub allowed_domains: Vec<String>,
-}
 
 #[derive(Debug, Clone)]
 pub struct DataPath {

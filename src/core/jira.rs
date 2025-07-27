@@ -382,7 +382,7 @@ impl JiraService {
             .ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::NotFound,
-                    "JIRA configuration not found. Please create jira_config.toml in your data directory"
+"JIRA configuration not found. Please configure JIRA in the [platforms.jira] section of config.toml"
                 )
             })?;
 
@@ -398,7 +398,7 @@ impl JiraService {
             .ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::NotFound,
-                    "JIRA configuration not found. Please create jira_config.toml in your data directory"
+"JIRA configuration not found. Please configure JIRA in the [platforms.jira] section of config.toml"
                 )
             })?;
 

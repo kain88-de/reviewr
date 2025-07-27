@@ -1,11 +1,11 @@
 use crate::core::{
-    config::ConfigService,
     employee::EmployeeService,
     gerrit::GerritPlatform,
     jira::JiraPlatform,
     models::{DataPath, validate_domain},
     notes::NotesService,
     platform::PlatformRegistry,
+    unified_config::UnifiedConfigService,
 };
 use clap::{Parser, Subcommand};
 use log::{error, info};
@@ -159,7 +159,7 @@ pub async fn handle_review_command(
     if configured_platforms.is_empty() {
         println!("❌ No review platforms are configured.");
         println!("\nTo get started:");
-        println!("• Configure Gerrit by creating gerrit_config.toml in your data directory");
+        println!("• Configure platforms in the [platforms] section of config.toml");
         println!("• Run 'reviewr config' to check current configuration");
         return Ok(());
     }
@@ -278,10 +278,10 @@ pub fn handle_config_command(
 ) -> io::Result<()> {
     match command {
         Some(ConfigCommands::Get { key }) => {
-            let config = ConfigService::load_config(data_path)?;
+            let config = UnifiedConfigService::load_config(data_path)?;
             match key.as_str() {
                 "allowed_domains" => {
-                    println!("allowed_domains: {:?}", config.allowed_domains);
+                    println!("allowed_domains: {:?}", config.global_settings.allowed_domains);
                     println!("Config file: {}", data_path.config_path().display());
                 }
                 _ => {
@@ -290,7 +290,7 @@ pub fn handle_config_command(
             }
         }
         Some(ConfigCommands::Set { key, value }) => {
-            let mut config = ConfigService::load_config(data_path)?;
+            let mut config = UnifiedConfigService::load_config(data_path)?;
             match key.as_str() {
                 "allowed_domains" => {
                     let domains: Result<Vec<String>, io::Error> = value
@@ -304,10 +304,10 @@ pub fn handle_config_command(
 
                     match domains {
                         Ok(valid_domains) => {
-                            config.allowed_domains = valid_domains;
-                            ConfigService::save_config(&config, data_path)?;
+                            config.global_settings.allowed_domains = valid_domains;
+                            UnifiedConfigService::save_config(&config, data_path)?;
                             info!("Updated allowed_domains configuration");
-                            println!("allowed_domains set to: {:?}", config.allowed_domains);
+                            println!("allowed_domains set to: {:?}", config.global_settings.allowed_domains);
                             println!("Config file: {}", data_path.config_path().display());
                         }
                         Err(e) => {
@@ -323,10 +323,10 @@ pub fn handle_config_command(
         }
         None => {
             // Show all current configuration
-            let config = ConfigService::load_config(data_path)?;
+            let config = UnifiedConfigService::load_config(data_path)?;
             println!("Current Configuration:");
             println!("======================");
-            println!("allowed_domains: {:?}", config.allowed_domains);
+            println!("allowed_domains: {:?}", config.global_settings.allowed_domains);
             println!();
             println!("Config file: {}", data_path.config_path().display());
         }

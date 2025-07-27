@@ -309,7 +309,7 @@ impl GerritService {
             .ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::NotFound,
-                    "Gerrit configuration not found. Please create gerrit_config.toml in your data directory"
+"Gerrit configuration not found. Please configure Gerrit in the [platforms.gerrit] section of config.toml"
                 )
             })?;
 
@@ -325,7 +325,7 @@ impl GerritService {
             .ok_or_else(|| {
                 io::Error::new(
                     io::ErrorKind::NotFound,
-                    "Gerrit configuration not found. Please create gerrit_config.toml in your data directory"
+"Gerrit configuration not found. Please configure Gerrit in the [platforms.gerrit] section of config.toml"
                 )
             })?;
 
