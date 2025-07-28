@@ -13,7 +13,6 @@ use std::collections::HashMap;
 use std::io;
 use std::time::Duration;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IssueInfo {
     pub key: String,
@@ -563,8 +562,7 @@ impl ReviewPlatform for JiraPlatform {
     }
 
     async fn search_items(&self, query: &str, user: &str) -> io::Result<Vec<ActivityItem>> {
-        // For now, implement basic search by getting all activities and filtering
-        // TODO: Implement proper JIRA JQL search integration
+        // Basic search by filtering activities
         let activities = self.get_detailed_activities(user, 30).await?;
 
         let mut results = Vec::new();

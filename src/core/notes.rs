@@ -1,5 +1,5 @@
-use crate::core::unified_config::UnifiedConfigService;
 use crate::core::models::DataPath;
+use crate::core::unified_config::UnifiedConfigService;
 use log::{info, warn};
 use std::env;
 use std::fs;
@@ -27,7 +27,8 @@ impl NotesService {
             if let Ok(text) = clipboard.get_text() {
                 if let Ok(url) = url::Url::parse(&text) {
                     if let Some(domain) = url.domain() {
-                        if Self::is_domain_allowed(domain, &config.global_settings.allowed_domains) {
+                        if Self::is_domain_allowed(domain, &config.global_settings.allowed_domains)
+                        {
                             info!("Adding evidence URL from clipboard: {url} (domain: {domain})");
                             let mut file = fs::OpenOptions::new().append(true).open(&note_path)?;
                             writeln!(file, "- Evidence: {url}")?;

@@ -83,8 +83,6 @@ fn create_platform_registry(data_path: &DataPath) -> PlatformRegistry {
     let jira_platform = JiraPlatform::new(data_path.clone());
     registry.register_platform(Box::new(jira_platform));
 
-    // TODO: Register GitLab platform when implemented
-
     registry
 }
 
@@ -281,7 +279,10 @@ pub fn handle_config_command(
             let config = UnifiedConfigService::load_config(data_path)?;
             match key.as_str() {
                 "allowed_domains" => {
-                    println!("allowed_domains: {:?}", config.global_settings.allowed_domains);
+                    println!(
+                        "allowed_domains: {:?}",
+                        config.global_settings.allowed_domains
+                    );
                     println!("Config file: {}", data_path.config_path().display());
                 }
                 _ => {
@@ -307,7 +308,10 @@ pub fn handle_config_command(
                             config.global_settings.allowed_domains = valid_domains;
                             UnifiedConfigService::save_config(&config, data_path)?;
                             info!("Updated allowed_domains configuration");
-                            println!("allowed_domains set to: {:?}", config.global_settings.allowed_domains);
+                            println!(
+                                "allowed_domains set to: {:?}",
+                                config.global_settings.allowed_domains
+                            );
                             println!("Config file: {}", data_path.config_path().display());
                         }
                         Err(e) => {
@@ -326,7 +330,10 @@ pub fn handle_config_command(
             let config = UnifiedConfigService::load_config(data_path)?;
             println!("Current Configuration:");
             println!("======================");
-            println!("allowed_domains: {:?}", config.global_settings.allowed_domains);
+            println!(
+                "allowed_domains: {:?}",
+                config.global_settings.allowed_domains
+            );
             println!();
             println!("Config file: {}", data_path.config_path().display());
         }

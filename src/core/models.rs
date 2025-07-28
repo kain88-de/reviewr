@@ -9,7 +9,6 @@ pub struct Employee {
     pub committer_email: Option<String>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct DataPath {
     pub root: PathBuf,

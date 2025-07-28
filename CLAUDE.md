@@ -30,35 +30,26 @@ Before committing any changes:
 ### Release
 - `just release [LEVEL]` - Release a new version (patch, minor, major)
 
+## Development
+
+We follow a test driven development approach.
+
+- new features start thinking how we can tests it.
+- on writing code use the red green refactor cycle
+  - write tests showing the behavior we want
+  - write the minimal code to make the tests pass, e.g. hard coded returns are ok here
+  - refactor the code to be nice and do the work we want, ensure the tests still pass
+- when refactoring start with test for your refactor if we do not think the behavior changes
+
 ## Architecture
 
 This is a Rust CLI tool for employee reviews with the following structure:
-
-### Core Components
-- **CLI Interface**: Uses `clap` for command parsing with subcommands (Add, Notes, Config)
-- **Data Storage**: TOML files for employee data and configuration, Markdown files for notes
-- **Configuration**: `Config` struct with `allowed_domains` for URL filtering
-- **Clipboard Integration**: Automatically captures URLs from clipboard when opening notes
-
-### Key Features
-- **Employee Management**: Add employees with name and title
-- **Notes System**: Markdown-based notes with automatic date headers
-- **URL Evidence**: Automatically appends clipboard URLs to notes if domain is allowed
-- **Configurable Data Path**: Can use custom data directory via `--data-path`
 
 ### Data Structure
 - Default data location: `~/.reviewr/`
 - Employee files: `employees/{name}.toml`
 - Note files: `notes/{name}.md`
 - Config file: `config.toml`
-
-### Dependencies
-- `clap` - CLI argument parsing
-- `serde` + `toml` - Configuration and data serialization
-- `chrono` - Date/time handling
-- `arboard` - Clipboard access
-- `url` - URL parsing and validation
-- `dirs` - System directory paths
 
 ### Testing Philosophy
 - **Integration Tests**: Primary focus on behavior-driven testing, treating the application as a black box

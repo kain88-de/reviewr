@@ -490,8 +490,7 @@ impl ReviewPlatform for GerritPlatform {
     }
 
     async fn search_items(&self, query: &str, user: &str) -> std::io::Result<Vec<ActivityItem>> {
-        // For now, implement basic search by getting all activities and filtering
-        // TODO: Implement proper Gerrit search API integration
+        // Basic search by filtering activities
         let activities = self.get_detailed_activities(user, 30).await?;
 
         let mut results = Vec::new();

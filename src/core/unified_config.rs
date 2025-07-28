@@ -5,18 +5,10 @@ use std::collections::HashMap;
 use std::io;
 
 /// Global settings that apply across all platforms
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct GlobalSettings {
     #[serde(default)]
     pub allowed_domains: Vec<String>,
-}
-
-impl Default for GlobalSettings {
-    fn default() -> Self {
-        Self {
-            allowed_domains: vec![],
-        }
-    }
 }
 
 /// Unified configuration supporting multiple review platforms
@@ -47,8 +39,6 @@ pub struct PlatformConfigs {
     pub gerrit: Option<GerritConfig>,
     #[serde(default)]
     pub jira: Option<JiraConfig>,
-    #[serde(default)]
-    pub gitlab: Option<GitLabConfig>,
 }
 
 /// JIRA platform configuration
@@ -62,19 +52,6 @@ pub struct JiraConfig {
     #[serde(default)]
     pub custom_fields: HashMap<String, String>,
 }
-
-/// GitLab platform configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GitLabConfig {
-    pub gitlab_url: String,
-    pub access_token: String,
-    pub username: String,
-    #[serde(default)]
-    pub group_filter: Vec<String>,
-    #[serde(default)]
-    pub project_filter: Vec<String>,
-}
-
 
 /// UI preferences and customization
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,11 +71,7 @@ impl Default for UiPreferences {
         Self {
             default_time_period_days: 30,
             show_platform_icons: true,
-            preferred_platform_order: vec![
-                "gerrit".to_string(),
-                "jira".to_string(),
-                "gitlab".to_string(),
-            ],
+            preferred_platform_order: vec!["gerrit".to_string(), "jira".to_string()],
             theme: UiTheme::Default,
         }
     }
@@ -187,7 +160,4 @@ impl UnifiedConfigService {
             Ok(None)
         }
     }
-
-
-
 }
