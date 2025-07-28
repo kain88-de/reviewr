@@ -130,3 +130,57 @@ fn test_list_empty() {
         .success()
         .stdout(predicate::str::contains("No employees found."));
 }
+
+#[test]
+fn test_edit_employee_workflow() {
+    let dir = tempdir().unwrap();
+
+    // First add an employee
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
+    cmd.timeout(Duration::from_secs(5));
+    cmd.arg("--data-path")
+        .arg(dir.path())
+        .arg("add")
+        .arg("John Doe");
+    cmd.write_stdin("Engineer\ntest.user@example.com\n");
+    cmd.assert().success();
+
+    // Verify employee was created
+    let employee_path = dir.path().join("employees/John Doe.toml");
+    assert!(employee_path.exists());
+    let content = fs::read_to_string(&employee_path).unwrap();
+    assert!(content.contains("title = \"Engineer\""));
+    assert!(content.contains("committer_email = \"test.user@example.com\""));
+
+    // TODO: Edit command test requires TUI simulation which we'll handle in TUI unit tests
+    // For now, we verify that the employee file can be modified directly and read correctly
+    let updated_content = r#"name = "John Doe"
+title = "Senior Engineer"
+committer_email = "john.doe@company.com"
+"#;
+    fs::write(&employee_path, updated_content).unwrap();
+
+    // Verify the application can read the updated employee
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
+    cmd.timeout(Duration::from_secs(5));
+    cmd.arg("--data-path").arg(dir.path()).arg("list");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("John Doe - Senior Engineer"));
+}
+
+#[test]
+fn test_edit_nonexistent_employee() {
+    let dir = tempdir().unwrap();
+
+    // Try to edit an employee that doesn't exist
+    let mut cmd = Command::cargo_bin("reviewr").unwrap();
+    cmd.timeout(Duration::from_secs(5));
+    cmd.arg("--data-path")
+        .arg(dir.path())
+        .arg("edit")
+        .arg("Nonexistent User");
+    cmd.assert().success().stdout(predicate::str::contains(
+        "Employee 'Nonexistent User' not found.",
+    ));
+}

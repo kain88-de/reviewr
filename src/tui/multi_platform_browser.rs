@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::io;
 
 #[derive(Clone, PartialEq)]
-enum ViewMode {
+pub enum ViewMode {
     Summary,
     PlatformView {
         platform_id: String,
@@ -27,7 +27,7 @@ enum ViewMode {
 }
 
 impl ViewMode {
-    fn title(&self, platforms: &HashMap<String, String>) -> String {
+    pub fn title(&self, platforms: &HashMap<String, String>) -> String {
         match self {
             ViewMode::Summary => "📊 Multi-Platform Activity Summary".to_string(),
             ViewMode::PlatformView { platform_id } => {
@@ -217,7 +217,7 @@ impl MultiPlatformBrowser {
         Ok(false)
     }
 
-    fn next_platform(&mut self) {
+    pub fn next_platform(&mut self) {
         if !self.platform_order.is_empty() {
             self.selected_platform_index =
                 (self.selected_platform_index + 1) % self.platform_order.len();
@@ -227,7 +227,7 @@ impl MultiPlatformBrowser {
         }
     }
 
-    fn prev_platform(&mut self) {
+    pub fn prev_platform(&mut self) {
         if !self.platform_order.is_empty() {
             self.selected_platform_index = if self.selected_platform_index == 0 {
                 self.platform_order.len() - 1
@@ -300,7 +300,7 @@ impl MultiPlatformBrowser {
         }
     }
 
-    fn get_available_categories(&self, platform_id: &str) -> Vec<ActivityCategory> {
+    pub fn get_available_categories(&self, platform_id: &str) -> Vec<ActivityCategory> {
         if let Some(activities) = self.platform_activities.get(platform_id) {
             activities.items_by_category.keys().cloned().collect()
         } else {
@@ -308,7 +308,7 @@ impl MultiPlatformBrowser {
         }
     }
 
-    fn get_category_items(
+    pub fn get_category_items(
         &self,
         platform_id: &str,
         category: &ActivityCategory,
@@ -610,6 +610,56 @@ impl MultiPlatformBrowser {
                 f.render_widget(details, detail_area);
             }
         }
+    }
+
+    #[cfg(test)]
+    pub fn employee_name(&self) -> &str {
+        &self.employee_name
+    }
+
+    #[cfg(test)]
+    pub fn employee_email(&self) -> &str {
+        &self.employee_email
+    }
+
+    #[cfg(test)]
+    pub fn platform_names(&self) -> &HashMap<String, String> {
+        &self.platform_names
+    }
+
+    #[cfg(test)]
+    pub fn platform_icons(&self) -> &HashMap<String, String> {
+        &self.platform_icons
+    }
+
+    #[cfg(test)]
+    pub fn current_view(&self) -> &ViewMode {
+        &self.current_view
+    }
+
+    #[cfg(test)]
+    pub fn set_current_view(&mut self, view: ViewMode) {
+        self.current_view = view;
+    }
+
+    #[cfg(test)]
+    pub fn selected_platform_index(&self) -> usize {
+        self.selected_platform_index
+    }
+
+    #[cfg(test)]
+    pub fn platform_activities(&self) -> &HashMap<String, DetailedActivities> {
+        &self.platform_activities
+    }
+
+    #[cfg(test)]
+    pub fn platform_activities_mut(&mut self) -> &mut HashMap<String, DetailedActivities> {
+        &mut self.platform_activities
+    }
+
+    #[cfg(test)]
+    pub fn platform_order(&self) -> &Vec<String> {
+        &self.platform_order
     }
 
     fn render_help_overlay(&self, f: &mut Frame, area: ratatui::layout::Rect) {
