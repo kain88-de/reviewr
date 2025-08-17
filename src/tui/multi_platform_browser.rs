@@ -238,7 +238,22 @@ impl MultiPlatformBrowser {
         }
 
         match key.code {
-            KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
+            KeyCode::Char('q') | KeyCode::Esc => {
+                // Go back to previous view, or quit if at summary
+                match &self.current_view {
+                    ViewMode::CategoryView { platform_id, .. } => {
+                        self.current_view = ViewMode::PlatformView {
+                            platform_id: platform_id.clone(),
+                        };
+                        self.list_state.select(Some(self.selected_category_index));
+                    }
+                    ViewMode::PlatformView { .. } => {
+                        self.current_view = ViewMode::Summary;
+                        self.list_state.select(Some(self.selected_platform_index));
+                    }
+                    ViewMode::Summary => return Ok(true), // Quit from summary view
+                }
+            }
             KeyCode::Char('h') | KeyCode::Char('?') => {
                 self.show_help = true;
             }
@@ -759,6 +774,7 @@ impl MultiPlatformBrowser {
 NAVIGATION:
   ↑/↓         Navigate through lists
   Enter       Select item / View details / Open in browser
+  q/Esc       Go back to previous view (or quit from summary)
   Backspace   Go back to previous view
   Tab         Switch between platforms (in summary)
   Shift+Tab   Switch platforms backwards
@@ -766,7 +782,6 @@ NAVIGATION:
 VIEWS:
   s           Go to Summary view
   h/?         Show/hide this help
-  q/Esc       Quit application
 
 FEATURES:
   • Summary: Overview of all configured platforms
