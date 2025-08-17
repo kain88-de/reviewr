@@ -5,7 +5,6 @@ use crate::core::platform::{
 };
 use crate::core::unified_config::JiraConfig;
 use async_trait::async_trait;
-use base64::Engine;
 use log::info;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -121,11 +120,8 @@ impl JiraClient {
             .build()
             .map_err(|e| io::Error::other(format!("Failed to create HTTP client: {e}")))?;
 
-        let credentials = format!("{}:{}", config.username, config.api_token);
-        let auth_header = format!(
-            "Basic {}",
-            base64::engine::general_purpose::STANDARD.encode(credentials)
-        );
+        // Use Bearer authentication for Personal Access Tokens (PAT) in JIRA Data Center
+        let auth_header = format!("Bearer {}", config.api_token);
 
         let base_url = config.jira_url.trim_end_matches('/').to_string();
 
@@ -183,7 +179,7 @@ impl JiraClient {
 
     async fn search_issues_count(&self, jql: &str) -> io::Result<u32> {
         let url = format!(
-            "{}/rest/api/3/search?jql={}&maxResults=0",
+            "{}/rest/api/2/search?jql={}&maxResults=0",
             self.base_url,
             urlencoding::encode(jql)
         );
@@ -280,7 +276,7 @@ impl JiraClient {
 
     async fn search_detailed_issues(&self, jql: &str) -> io::Result<Vec<IssueInfo>> {
         let url = format!(
-            "{}/rest/api/3/search?jql={}&maxResults=50&fields=summary,status,assignee,reporter,created,updated,resolutiondate,project,issuetype,priority,components",
+            "{}/rest/api/2/search?jql={}&maxResults=50&fields=summary,status,assignee,reporter,created,updated,resolutiondate,project,issuetype,priority,components",
             self.base_url,
             urlencoding::encode(jql)
         );
@@ -316,10 +312,29 @@ impl JiraClient {
             )));
         }
 
-        let search_response: JiraSearchResponse = response.json().await.map_err(|e| {
+        // Get response text first for debugging
+        let response_text = response.text().await.map_err(|e| {
+            ErrorContext::new("jira", "search_detailed_issues")
+                .with_error("response_read_error", &e.to_string())
+                .with_request_details(&url, None, None)
+                .with_metadata("jql_query", jql)
+                .log_error();
+            io::Error::other(format!("Failed to read response: {e}"))
+        })?;
+
+        // Log first 500 chars of response for debugging
+        let preview = if response_text.len() > 500 {
+            format!("{}...", &response_text[..500])
+        } else {
+            response_text.clone()
+        };
+
+        log::info!("JIRA response preview: {}", preview);
+
+        let search_response: JiraSearchResponse = serde_json::from_str(&response_text).map_err(|e| {
             ErrorContext::new("jira", "search_detailed_issues")
                 .with_error("json_parse_error", &e.to_string())
-                .with_request_details(&url, None, None)
+                .with_request_details(&url, None, Some(&response_text))
                 .with_metadata("jql_query", jql)
                 .log_error();
             io::Error::new(io::ErrorKind::InvalidData, format!("Invalid JSON: {e}"))
@@ -359,7 +374,7 @@ impl JiraClient {
     }
 
     pub async fn test_connection(&self) -> io::Result<()> {
-        let url = format!("{}/rest/api/3/myself", self.base_url);
+        let url = format!("{}/rest/api/2/myself", self.base_url);
 
         let response = self
             .client
