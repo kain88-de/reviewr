@@ -1,11 +1,11 @@
 use crate::core::models::DataPath;
 use crate::core::platform::{
     ActivityCategory, ActivityItem, ActivityMetrics as PlatformActivityMetrics, ConnectionStatus,
-    DetailedActivities, ReviewPlatform,
+    DetailedActivities, ErrorContext, ReviewPlatform,
 };
 use async_trait::async_trait;
 use base64::Engine;
-use log::{error, info};
+use log::info;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::io;
@@ -150,21 +150,33 @@ impl GerritClient {
             .send()
             .await
             .map_err(|e| {
-                error!("Failed to query Gerrit: {e}");
+                ErrorContext::new("gerrit", "query_changes")
+                    .with_error("network_error", &e.to_string())
+                    .with_request_details(&url, None, None)
+                    .with_metadata("query", query)
+                    .log_error();
                 io::Error::other(format!("Gerrit API request failed: {e}"))
             })?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
-            error!("Gerrit API error {status}: {error_text}");
+            ErrorContext::new("gerrit", "query_changes")
+                .with_error("api_error", &format!("HTTP {status}"))
+                .with_request_details(&url, Some(status.as_u16()), Some(&error_text))
+                .with_metadata("query", query)
+                .log_error();
             return Err(io::Error::other(format!(
                 "Gerrit API returned {status}: {error_text}"
             )));
         }
 
         let text = response.text().await.map_err(|e| {
-            error!("Failed to read Gerrit response: {e}");
+            ErrorContext::new("gerrit", "query_changes")
+                .with_error("response_read_error", &e.to_string())
+                .with_request_details(&url, None, None)
+                .with_metadata("query", query)
+                .log_error();
             io::Error::other(format!("Failed to read response: {e}"))
         })?;
 
@@ -172,7 +184,15 @@ impl GerritClient {
         let json_text = text.strip_prefix(")]}'").unwrap_or(&text);
 
         let changes: Vec<serde_json::Value> = serde_json::from_str(json_text).map_err(|e| {
-            error!("Failed to parse Gerrit JSON response: {e}");
+            ErrorContext::new("gerrit", "query_changes")
+                .with_error("json_parse_error", &e.to_string())
+                .with_request_details(&url, None, None)
+                .with_metadata("query", query)
+                .with_metadata(
+                    "response_body_preview",
+                    &json_text.chars().take(200).collect::<String>(),
+                )
+                .log_error();
             io::Error::new(io::ErrorKind::InvalidData, format!("Invalid JSON: {e}"))
         })?;
 
@@ -251,21 +271,33 @@ impl GerritClient {
             .send()
             .await
             .map_err(|e| {
-                error!("Failed to query Gerrit: {e}");
+                ErrorContext::new("gerrit", "query_detailed_changes")
+                    .with_error("network_error", &e.to_string())
+                    .with_request_details(&url, None, None)
+                    .with_metadata("query", query)
+                    .log_error();
                 io::Error::other(format!("Gerrit API request failed: {e}"))
             })?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
-            error!("Gerrit API error {status}: {error_text}");
+            ErrorContext::new("gerrit", "query_detailed_changes")
+                .with_error("api_error", &format!("HTTP {status}"))
+                .with_request_details(&url, Some(status.as_u16()), Some(&error_text))
+                .with_metadata("query", query)
+                .log_error();
             return Err(io::Error::other(format!(
                 "Gerrit API returned {status}: {error_text}"
             )));
         }
 
         let text = response.text().await.map_err(|e| {
-            error!("Failed to read Gerrit response: {e}");
+            ErrorContext::new("gerrit", "query_detailed_changes")
+                .with_error("response_read_error", &e.to_string())
+                .with_request_details(&url, None, None)
+                .with_metadata("query", query)
+                .log_error();
             io::Error::other(format!("Failed to read response: {e}"))
         })?;
 
@@ -273,7 +305,15 @@ impl GerritClient {
         let json_text = text.strip_prefix(")]}'").unwrap_or(&text);
 
         let changes: Vec<ChangeInfo> = serde_json::from_str(json_text).map_err(|e| {
-            error!("Failed to parse Gerrit JSON response: {e}");
+            ErrorContext::new("gerrit", "query_detailed_changes")
+                .with_error("json_parse_error", &e.to_string())
+                .with_request_details(&url, None, None)
+                .with_metadata("query", query)
+                .with_metadata(
+                    "response_body_preview",
+                    &json_text.chars().take(200).collect::<String>(),
+                )
+                .log_error();
             io::Error::new(io::ErrorKind::InvalidData, format!("Invalid JSON: {e}"))
         })?;
 

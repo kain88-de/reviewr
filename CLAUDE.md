@@ -65,3 +65,5 @@ This is a Rust CLI tool for employee reviews with the following structure:
 
 ### Testing Implementation
 Integration tests use `assert_cmd` and `tempfile` for testing CLI commands with timeouts (5 seconds).
+
+- run pre-commit run --all-files before attempting a commit

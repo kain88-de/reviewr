@@ -1,10 +1,11 @@
 use crate::core::{
     employee::EmployeeService,
     gerrit::GerritPlatform,
+    gitlab::GitLabPlatform,
     jira::JiraPlatform,
     models::{DataPath, validate_domain},
     notes::NotesService,
-    platform::PlatformRegistry,
+    platform::{ErrorLogReader, PlatformRegistry},
     unified_config::UnifiedConfigService,
 };
 use clap::{Parser, Subcommand};
@@ -53,6 +54,11 @@ pub enum Commands {
         #[command(subcommand)]
         command: Option<ConfigCommands>,
     },
+    /// View error reports and diagnostics
+    Errors {
+        #[command(subcommand)]
+        command: Option<ErrorCommands>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -71,6 +77,32 @@ pub enum ConfigCommands {
     },
 }
 
+#[derive(Subcommand)]
+pub enum ErrorCommands {
+    /// Show recent errors
+    List {
+        /// Platform to filter by
+        #[arg(short, long)]
+        platform: Option<String>,
+        /// Number of errors to show
+        #[arg(short, long, default_value = "10")]
+        limit: usize,
+    },
+    /// Show error statistics by platform
+    Stats,
+    /// Export errors to JSON
+    Export {
+        /// Platform to filter by
+        #[arg(short, long)]
+        platform: Option<String>,
+        /// Output file (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Clear all recorded errors
+    Clear,
+}
+
 /// Initialize the platform registry with all available platforms
 fn create_platform_registry(data_path: &DataPath) -> PlatformRegistry {
     let mut registry = PlatformRegistry::new();
@@ -82,6 +114,16 @@ fn create_platform_registry(data_path: &DataPath) -> PlatformRegistry {
     // Register JIRA platform
     let jira_platform = JiraPlatform::new(data_path.clone());
     registry.register_platform(Box::new(jira_platform));
+
+    // Register GitLab platforms (multiple instances)
+    if let Ok(config) = UnifiedConfigService::load_config(data_path) {
+        for (instance_id, gitlab_config) in config.platforms.gitlab {
+            if gitlab_config.is_configured() {
+                let gitlab_platform = GitLabPlatform::new(gitlab_config, instance_id, data_path);
+                registry.register_platform(Box::new(gitlab_platform));
+            }
+        }
+    }
 
     registry
 }
@@ -166,13 +208,16 @@ pub async fn handle_review_command(
     use crate::tui::MultiPlatformBrowser;
     let mut browser = MultiPlatformBrowser::new(employee.name.clone(), email.clone(), &registry);
 
-    // Load data from all configured platforms
-    match browser.load_data(&registry).await {
+    // Load data from all configured platforms with background processing
+    println!(
+        "🔄 Starting data fetch from {} platform(s)...",
+        configured_platforms.len()
+    );
+    println!("   Loading will continue in background - press ESC to cancel");
+
+    match browser.load_data_async(&registry).await {
         Ok(_) => {
-            println!(
-                "✅ Loaded data from {} platform(s)",
-                configured_platforms.len()
-            );
+            println!("✅ Data loading completed, launching TUI...");
             browser.run()?;
             Ok(())
         }
@@ -338,5 +383,134 @@ pub fn handle_config_command(
             println!("Config file: {}", data_path.config_path().display());
         }
     }
+    Ok(())
+}
+
+pub fn handle_errors_command(command: &Option<ErrorCommands>) -> io::Result<()> {
+    match command {
+        Some(ErrorCommands::List { platform, limit }) => {
+            match ErrorLogReader::read_recent_errors(*limit, platform.as_deref()) {
+                Ok(errors) => {
+                    if errors.is_empty() {
+                        println!("No errors found.");
+                        return Ok(());
+                    }
+
+                    println!("Recent errors (showing {} most recent):", errors.len());
+                    println!();
+
+                    for error in errors {
+                        println!(
+                            "🔴 {} | {} | {}",
+                            error.timestamp, error.platform_id, error.operation
+                        );
+                        println!(
+                            "   Type: {} | Message: {}",
+                            error.error_type, error.error_message
+                        );
+                        if let Some(user) = &error.user {
+                            println!("   User: {user}");
+                        }
+                        if let Some(url) = &error.request_url {
+                            println!("   URL: {url}");
+                        }
+                        if let Some(status) = error.status_code {
+                            println!("   Status: {status}");
+                        }
+                        if !error.metadata.is_empty() {
+                            println!("   Context: {:?}", error.metadata);
+                        }
+                        println!();
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to read error log: {e}");
+                    println!("❌ Failed to read error log: {e}");
+                }
+            }
+        }
+        Some(ErrorCommands::Stats) => match ErrorLogReader::get_error_stats() {
+            Ok(stats) => {
+                if stats.is_empty() {
+                    println!("No error statistics available.");
+                    return Ok(());
+                }
+
+                println!("Error statistics by platform:");
+                println!();
+
+                for (platform, platform_stats) in stats {
+                    println!("📊 Platform: {platform}");
+                    println!("   Total errors: {}", platform_stats.total_errors);
+                    if let Some(last_error) = &platform_stats.last_error_time {
+                        println!("   Last error: {last_error}");
+                    }
+
+                    if !platform_stats.error_types.is_empty() {
+                        println!("   Error types:");
+                        for (error_type, count) in platform_stats.error_types {
+                            println!("     {error_type}: {count}");
+                        }
+                    }
+                    println!();
+                }
+            }
+            Err(e) => {
+                error!("Failed to read error statistics: {e}");
+                println!("❌ Failed to read error statistics: {e}");
+            }
+        },
+        Some(ErrorCommands::Export { platform, output }) => {
+            match ErrorLogReader::read_recent_errors(1000, platform.as_deref()) {
+                Ok(errors) => {
+                    let json_output = serde_json::to_string_pretty(&errors).map_err(|e| {
+                        io::Error::other(format!("Failed to serialize errors: {e}"))
+                    })?;
+
+                    match output {
+                        Some(output_path) => {
+                            std::fs::write(output_path, json_output)?;
+                            println!(
+                                "✅ Exported {} errors to {}",
+                                errors.len(),
+                                output_path.display()
+                            );
+                        }
+                        None => {
+                            println!("{json_output}");
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to export errors: {e}");
+                    println!("❌ Failed to export errors: {e}");
+                }
+            }
+        }
+        Some(ErrorCommands::Clear) => {
+            let data_dir = dirs::home_dir()
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+                .join(".reviewr");
+
+            let error_log_path = data_dir.join("error.log");
+
+            if error_log_path.exists() {
+                std::fs::remove_file(error_log_path)?;
+                println!("✅ Error log cleared.");
+            } else {
+                println!("No error log file found.");
+            }
+        }
+        None => {
+            println!("Available error commands:");
+            println!("  list    - Show recent errors");
+            println!("  stats   - Show error statistics by platform");
+            println!("  export  - Export errors to JSON");
+            println!("  clear   - Clear all recorded errors");
+            println!();
+            println!("Use 'reviewr errors <command> --help' for more information.");
+        }
+    }
+
     Ok(())
 }

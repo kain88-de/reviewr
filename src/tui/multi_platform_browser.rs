@@ -1,9 +1,12 @@
-use crate::core::platform::{ActivityCategory, ActivityItem, DetailedActivities, PlatformRegistry};
+use crate::core::platform::{
+    ActivityCategory, ActivityItem, DetailedActivities, ErrorContext, PlatformRegistry,
+};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
+use futures::future::join_all;
 use ratatui::{
     Frame, Terminal,
     backend::{Backend, CrosstermBackend},
@@ -57,6 +60,8 @@ pub struct MultiPlatformBrowser {
     list_state: ListState,
     show_help: bool,
     platform_order: Vec<String>, // Order of platforms for navigation
+    platform_status: HashMap<String, String>, // platform_id -> status message
+    is_loading: bool,
 }
 
 impl MultiPlatformBrowser {
@@ -85,6 +90,8 @@ impl MultiPlatformBrowser {
             list_state: ListState::default(),
             show_help: false,
             platform_order,
+            platform_status: HashMap::new(),
+            is_loading: false,
         }
     }
 
@@ -100,11 +107,89 @@ impl MultiPlatformBrowser {
                         .insert(platform_id.to_string(), activities);
                 }
                 Err(e) => {
-                    // Log error but continue with other platforms
+                    // Log detailed error and continue with other platforms
+                    ErrorContext::new(platform_id, "load_platform_data")
+                        .with_user(&self.employee_email)
+                        .with_error("data_load_error", &e.to_string())
+                        .with_metadata("days", "30")
+                        .log_error();
+                    // Simple error message for user
                     log::warn!("Failed to load data from {platform_id}: {e}");
                 }
             }
         }
+        Ok(())
+    }
+
+    /// Load data from all platforms asynchronously with progress updates
+    pub async fn load_data_async(&mut self, registry: &PlatformRegistry) -> io::Result<()> {
+        self.is_loading = true;
+        self.platform_status.clear();
+
+        // Initialize status for all platforms
+        for platform in registry.get_configured_platforms() {
+            let platform_id = platform.get_platform_id().to_string();
+            self.platform_status
+                .insert(platform_id, "⏳ Queued".to_string());
+        }
+
+        println!("🔄 Starting background data fetch...");
+
+        // Create concurrent tasks for each platform directly
+        let mut tasks = Vec::new();
+
+        for platform in registry.get_configured_platforms() {
+            let platform_id = platform.get_platform_id().to_string();
+            let user = self.employee_email.clone();
+
+            // Update status to fetching
+            self.platform_status
+                .insert(platform_id.clone(), "🔄 Fetching...".to_string());
+            println!("{platform_id}: 🔄 Fetching...");
+
+            let task = async move {
+                let result = platform.get_detailed_activities(&user, 30).await;
+                (platform_id, result)
+            };
+
+            tasks.push(task);
+        }
+
+        // Execute all platform tasks concurrently
+        let results = join_all(tasks).await;
+
+        // Process results and update status
+        for (platform_id, result) in results {
+            match result {
+                Ok(platform_activities) => {
+                    let items_count: usize = platform_activities
+                        .items_by_category
+                        .values()
+                        .map(|items| items.len())
+                        .sum();
+                    self.platform_activities
+                        .insert(platform_id.clone(), platform_activities);
+                    self.platform_status
+                        .insert(platform_id.clone(), format!("✅ {items_count} items"));
+                    println!("{platform_id}: ✅ {items_count} items");
+                }
+                Err(e) => {
+                    // Log detailed error and continue with other platforms
+                    ErrorContext::new(&platform_id, "async_load_platform_data")
+                        .with_user(&self.employee_email)
+                        .with_error("data_load_error", &e.to_string())
+                        .with_metadata("days", "30")
+                        .log_error();
+                    self.platform_status
+                        .insert(platform_id.clone(), format!("❌ Failed: {e}"));
+                    println!("{platform_id}: ❌ Failed: {e}");
+                    log::warn!("Failed to load data from {platform_id}: {e}");
+                }
+            }
+        }
+
+        self.is_loading = false;
+        println!("✅ Data fetch completed!");
         Ok(())
     }
 
@@ -333,6 +418,12 @@ impl MultiPlatformBrowser {
             let items = self.get_category_items(platform_id, category);
             if let Some(item) = items.get(selected_index) {
                 if let Err(e) = webbrowser::open(&item.url) {
+                    ErrorContext::new("browser", "open_url")
+                        .with_error("browser_open_error", &e.to_string())
+                        .with_metadata("url", &item.url)
+                        .with_metadata("item_id", &item.id)
+                        .log_error();
+                    // Simple error message for user
                     log::warn!("Failed to open URL in browser: {e}");
                 }
             }

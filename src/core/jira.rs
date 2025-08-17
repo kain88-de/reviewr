@@ -1,12 +1,12 @@
 use crate::core::models::DataPath;
 use crate::core::platform::{
     ActivityCategory, ActivityItem, ActivityMetrics, ConnectionStatus, DetailedActivities,
-    ReviewPlatform,
+    ErrorContext, ReviewPlatform,
 };
 use crate::core::unified_config::JiraConfig;
 use async_trait::async_trait;
 use base64::Engine;
-use log::{error, info};
+use log::info;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -198,21 +198,33 @@ impl JiraClient {
             .send()
             .await
             .map_err(|e| {
-                error!("Failed to query JIRA: {e}");
+                ErrorContext::new("jira", "search_issues_count")
+                    .with_error("network_error", &e.to_string())
+                    .with_request_details(&url, None, None)
+                    .with_metadata("jql_query", jql)
+                    .log_error();
                 io::Error::other(format!("JIRA API request failed: {e}"))
             })?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
-            error!("JIRA API error {status}: {error_text}");
+            ErrorContext::new("jira", "search_issues_count")
+                .with_error("api_error", &format!("HTTP {status}"))
+                .with_request_details(&url, Some(status.as_u16()), Some(&error_text))
+                .with_metadata("jql_query", jql)
+                .log_error();
             return Err(io::Error::other(format!(
                 "JIRA API returned {status}: {error_text}"
             )));
         }
 
         let search_response: JiraSearchResponse = response.json().await.map_err(|e| {
-            error!("Failed to parse JIRA JSON response: {e}");
+            ErrorContext::new("jira", "search_issues_count")
+                .with_error("json_parse_error", &e.to_string())
+                .with_request_details(&url, None, None)
+                .with_metadata("jql_query", jql)
+                .log_error();
             io::Error::new(io::ErrorKind::InvalidData, format!("Invalid JSON: {e}"))
         })?;
 
@@ -283,21 +295,33 @@ impl JiraClient {
             .send()
             .await
             .map_err(|e| {
-                error!("Failed to query JIRA: {e}");
+                ErrorContext::new("jira", "search_detailed_issues")
+                    .with_error("network_error", &e.to_string())
+                    .with_request_details(&url, None, None)
+                    .with_metadata("jql_query", jql)
+                    .log_error();
                 io::Error::other(format!("JIRA API request failed: {e}"))
             })?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
-            error!("JIRA API error {status}: {error_text}");
+            ErrorContext::new("jira", "search_detailed_issues")
+                .with_error("api_error", &format!("HTTP {status}"))
+                .with_request_details(&url, Some(status.as_u16()), Some(&error_text))
+                .with_metadata("jql_query", jql)
+                .log_error();
             return Err(io::Error::other(format!(
                 "JIRA API returned {status}: {error_text}"
             )));
         }
 
         let search_response: JiraSearchResponse = response.json().await.map_err(|e| {
-            error!("Failed to parse JIRA JSON response: {e}");
+            ErrorContext::new("jira", "search_detailed_issues")
+                .with_error("json_parse_error", &e.to_string())
+                .with_request_details(&url, None, None)
+                .with_metadata("jql_query", jql)
+                .log_error();
             io::Error::new(io::ErrorKind::InvalidData, format!("Invalid JSON: {e}"))
         })?;
 

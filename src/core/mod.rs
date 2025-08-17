@@ -1,5 +1,7 @@
 pub mod employee;
+pub mod fetch_progress;
 pub mod gerrit;
+pub mod gitlab;
 pub mod jira;
 pub mod models;
 pub mod notes;

@@ -39,6 +39,8 @@ pub struct PlatformConfigs {
     pub gerrit: Option<GerritConfig>,
     #[serde(default)]
     pub jira: Option<JiraConfig>,
+    #[serde(default)]
+    pub gitlab: HashMap<String, GitLabConfig>,
 }
 
 /// JIRA platform configuration
@@ -51,6 +53,26 @@ pub struct JiraConfig {
     pub project_filter: Vec<String>,
     #[serde(default)]
     pub custom_fields: HashMap<String, String>,
+}
+
+/// GitLab platform configuration for a single instance
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GitLabConfig {
+    pub name: String,
+    pub url: String,
+    pub token: String,
+}
+
+impl GitLabConfig {
+    /// Check if this GitLab configuration is valid and complete
+    pub fn is_configured(&self) -> bool {
+        !self.url.is_empty() && !self.token.is_empty() && !self.name.is_empty()
+    }
+
+    /// Get the API base URL for this GitLab instance
+    pub fn api_base_url(&self) -> String {
+        format!("{}/api/v4", self.url.trim_end_matches('/'))
+    }
 }
 
 /// UI preferences and customization
