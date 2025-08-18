@@ -98,14 +98,16 @@ impl EmployeeSelector {
             }
             KeyCode::Up => {
                 if let Some(selected) = self.list_state.selected()
-                    && selected > 0 {
+                    && selected > 0
+                {
                     self.list_state.select(Some(selected - 1));
                 }
                 None
             }
             KeyCode::Down => {
                 if let Some(selected) = self.list_state.selected()
-                    && selected + 1 < self.filtered_employees.len() {
+                    && selected + 1 < self.filtered_employees.len()
+                {
                     self.list_state.select(Some(selected + 1));
                 } else if !self.filtered_employees.is_empty() {
                     self.list_state.select(Some(0));
