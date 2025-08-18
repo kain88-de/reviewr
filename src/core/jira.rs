@@ -329,16 +329,17 @@ impl JiraClient {
             response_text.clone()
         };
 
-        log::info!("JIRA response preview: {}", preview);
+        log::info!("JIRA response preview: {preview}");
 
-        let search_response: JiraSearchResponse = serde_json::from_str(&response_text).map_err(|e| {
-            ErrorContext::new("jira", "search_detailed_issues")
-                .with_error("json_parse_error", &e.to_string())
-                .with_request_details(&url, None, Some(&response_text))
-                .with_metadata("jql_query", jql)
-                .log_error();
-            io::Error::new(io::ErrorKind::InvalidData, format!("Invalid JSON: {e}"))
-        })?;
+        let search_response: JiraSearchResponse =
+            serde_json::from_str(&response_text).map_err(|e| {
+                ErrorContext::new("jira", "search_detailed_issues")
+                    .with_error("json_parse_error", &e.to_string())
+                    .with_request_details(&url, None, Some(&response_text))
+                    .with_metadata("jql_query", jql)
+                    .log_error();
+                io::Error::new(io::ErrorKind::InvalidData, format!("Invalid JSON: {e}"))
+            })?;
 
         Ok(search_response
             .issues
