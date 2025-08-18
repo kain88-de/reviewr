@@ -217,10 +217,10 @@ impl MultiPlatformBrowser {
         loop {
             terminal.draw(|f| self.ui(f))?;
 
-            if let Event::Key(key) = event::read()? {
-                if self.handle_key_event(key)? {
-                    break;
-                }
+            if let Event::Key(key) = event::read()?
+                && self.handle_key_event(key)?
+            {
+                break;
             }
         }
         Ok(())
@@ -287,10 +287,10 @@ impl MultiPlatformBrowser {
                             self.list_state.select(Some(0));
                         }
                     }
-                } else if let ViewMode::CategoryView { .. } = &self.current_view {
-                    if let Some(selected) = self.list_state.selected() {
-                        self.open_item_in_browser(selected)?;
-                    }
+                } else if let ViewMode::CategoryView { .. } = &self.current_view
+                    && let Some(selected) = self.list_state.selected()
+                {
+                    self.open_item_in_browser(selected)?;
                 }
             }
             KeyCode::Backspace => match &self.current_view {
@@ -431,16 +431,16 @@ impl MultiPlatformBrowser {
         } = &self.current_view
         {
             let items = self.get_category_items(platform_id, category);
-            if let Some(item) = items.get(selected_index) {
-                if let Err(e) = webbrowser::open(&item.url) {
-                    ErrorContext::new("browser", "open_url")
-                        .with_error("browser_open_error", &e.to_string())
-                        .with_metadata("url", &item.url)
-                        .with_metadata("item_id", &item.id)
-                        .log_error();
-                    // Simple error message for user
-                    log::warn!("Failed to open URL in browser: {e}");
-                }
+            if let Some(item) = items.get(selected_index)
+                && let Err(e) = webbrowser::open(&item.url)
+            {
+                ErrorContext::new("browser", "open_url")
+                    .with_error("browser_open_error", &e.to_string())
+                    .with_metadata("url", &item.url)
+                    .with_metadata("item_id", &item.id)
+                    .log_error();
+                // Simple error message for user
+                log::warn!("Failed to open URL in browser: {e}");
             }
         }
         Ok(())
@@ -697,24 +697,24 @@ impl MultiPlatformBrowser {
         f.render_stateful_widget(item_list, list_area, &mut self.list_state);
 
         // Details panel
-        if let (Some(detail_area), Some(idx)) = (detail_area, selected_idx) {
-            if let Some(selected_item) = items.get(idx) {
-                let details_text = format!(
-                    "ID: {}\nTitle: {}\nProject: {}\nStatus: {}\nCreated: {}\nUpdated: {}",
-                    selected_item.id,
-                    selected_item.title,
-                    selected_item.project,
-                    selected_item.status,
-                    selected_item.created,
-                    selected_item.updated
-                );
+        if let (Some(detail_area), Some(idx)) = (detail_area, selected_idx)
+            && let Some(selected_item) = items.get(idx)
+        {
+            let details_text = format!(
+                "ID: {}\nTitle: {}\nProject: {}\nStatus: {}\nCreated: {}\nUpdated: {}",
+                selected_item.id,
+                selected_item.title,
+                selected_item.project,
+                selected_item.status,
+                selected_item.created,
+                selected_item.updated
+            );
 
-                let details = Paragraph::new(details_text)
-                    .block(Block::default().borders(Borders::ALL).title("Details"))
-                    .wrap(Wrap { trim: true });
+            let details = Paragraph::new(details_text)
+                .block(Block::default().borders(Borders::ALL).title("Details"))
+                .wrap(Wrap { trim: true });
 
-                f.render_widget(details, detail_area);
-            }
+            f.render_widget(details, detail_area);
         }
     }
 

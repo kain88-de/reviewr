@@ -292,10 +292,10 @@ impl ErrorLogReader {
         for line in reader.lines() {
             let line = line?;
             if let Ok(error) = serde_json::from_str::<ErrorContext>(&line) {
-                if let Some(platform) = platform_filter {
-                    if error.platform_id != platform {
-                        continue;
-                    }
+                if let Some(platform) = platform_filter
+                    && error.platform_id != platform
+                {
+                    continue;
                 }
                 errors.push(error);
             }

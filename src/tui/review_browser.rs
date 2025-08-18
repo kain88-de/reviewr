@@ -86,10 +86,10 @@ impl ReviewBrowser {
         loop {
             terminal.draw(|f| self.ui(f))?;
 
-            if let Event::Key(key) = event::read()? {
-                if self.handle_key_event(key)? {
-                    break;
-                }
+            if let Event::Key(key) = event::read()?
+                && self.handle_key_event(key)?
+            {
+                break;
             }
         }
         Ok(())
@@ -158,29 +158,29 @@ impl ReviewBrowser {
                 }
             }
             KeyCode::Enter => {
-                if self.current_view != ViewMode::Summary {
-                    if let Some(selected) = self.list_state.selected() {
-                        let changes = self.get_current_changes();
-                        if let Some(change) = changes.get(selected) {
-                            let url = format!(
-                                "{}/c/{}/+/{}",
-                                self.gerrit_base_url, change.project, change.number
-                            );
-                            println!("Opening: {url}");
-                            // Try to open the URL in the default browser
-                            #[cfg(target_os = "linux")]
-                            std::process::Command::new("xdg-open")
-                                .arg(&url)
-                                .spawn()
-                                .ok();
-                            #[cfg(target_os = "macos")]
-                            std::process::Command::new("open").arg(&url).spawn().ok();
-                            #[cfg(target_os = "windows")]
-                            std::process::Command::new("cmd")
-                                .args(["/c", "start", &url])
-                                .spawn()
-                                .ok();
-                        }
+                if self.current_view != ViewMode::Summary
+                    && let Some(selected) = self.list_state.selected()
+                {
+                    let changes = self.get_current_changes();
+                    if let Some(change) = changes.get(selected) {
+                        let url = format!(
+                            "{}/c/{}/+/{}",
+                            self.gerrit_base_url, change.project, change.number
+                        );
+                        println!("Opening: {url}");
+                        // Try to open the URL in the default browser
+                        #[cfg(target_os = "linux")]
+                        std::process::Command::new("xdg-open")
+                            .arg(&url)
+                            .spawn()
+                            .ok();
+                        #[cfg(target_os = "macos")]
+                        std::process::Command::new("open").arg(&url).spawn().ok();
+                        #[cfg(target_os = "windows")]
+                        std::process::Command::new("cmd")
+                            .args(["/c", "start", &url])
+                            .spawn()
+                            .ok();
                     }
                 }
             }

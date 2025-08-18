@@ -23,25 +23,24 @@ impl NotesService {
         }
 
         let config = UnifiedConfigService::load_config(data_path)?;
-        if let Ok(mut clipboard) = arboard::Clipboard::new() {
-            if let Ok(text) = clipboard.get_text() {
-                if let Ok(url) = url::Url::parse(&text) {
-                    if let Some(domain) = url.domain() {
-                        if Self::is_domain_allowed(domain, &config.global_settings.allowed_domains)
-                        {
-                            info!("Adding evidence URL from clipboard: {url} (domain: {domain})");
-                            let mut file = fs::OpenOptions::new().append(true).open(&note_path)?;
-                            writeln!(file, "- Evidence: {url}")?;
-                        } else {
-                            warn!(
-                                "Clipboard URL domain '{}' not in allowed domains: {:?}",
-                                domain, config.global_settings.allowed_domains
-                            );
-                        }
+        if let Ok(mut clipboard) = arboard::Clipboard::new()
+            && let Ok(text) = clipboard.get_text()
+        {
+            if let Ok(url) = url::Url::parse(&text) {
+                if let Some(domain) = url.domain() {
+                    if Self::is_domain_allowed(domain, &config.global_settings.allowed_domains) {
+                        info!("Adding evidence URL from clipboard: {url} (domain: {domain})");
+                        let mut file = fs::OpenOptions::new().append(true).open(&note_path)?;
+                        writeln!(file, "- Evidence: {url}")?;
+                    } else {
+                        warn!(
+                            "Clipboard URL domain '{}' not in allowed domains: {:?}",
+                            domain, config.global_settings.allowed_domains
+                        );
                     }
-                } else {
-                    info!("Clipboard content is not a valid URL, skipping evidence insertion");
                 }
+            } else {
+                info!("Clipboard content is not a valid URL, skipping evidence insertion");
             }
         }
 

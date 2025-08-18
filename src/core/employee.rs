@@ -90,10 +90,10 @@ impl EmployeeService {
         for entry in fs::read_dir(&data_path.employees_dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("toml") {
-                if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
-                    employees.push(name.to_string());
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("toml")
+                && let Some(name) = path.file_stem().and_then(|s| s.to_str())
+            {
+                employees.push(name.to_string());
             }
         }
 

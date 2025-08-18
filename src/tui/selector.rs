@@ -89,10 +89,10 @@ impl EmployeeSelector {
                 None
             }
             KeyCode::Enter => {
-                if let Some(selected) = self.list_state.selected() {
-                    if selected < self.filtered_employees.len() {
-                        return Some(Some(self.filtered_employees[selected].0.clone()));
-                    }
+                if let Some(selected) = self.list_state.selected()
+                    && selected < self.filtered_employees.len()
+                {
+                    return Some(Some(self.filtered_employees[selected].0.clone()));
                 }
                 None
             }
